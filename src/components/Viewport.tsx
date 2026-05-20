@@ -9,9 +9,12 @@ const UV_VIEW_PADDING = 1.08
 interface ViewportProps {
   params: {
     divisions: number
+    widthDivisions: number
     thickness: number
     length: number
     curve: number
+    topCurve: number
+    taper: number
   }
   wireframe: boolean
   showUV: boolean
@@ -334,9 +337,12 @@ const Viewport: React.FC<ViewportProps> = ({
   ): THREE.BufferGeometry => {
     const geometry = generateSlashMesh(
       meshParams.divisions,
+      meshParams.widthDivisions,
       meshParams.thickness,
       meshParams.length,
-      meshParams.curve
+      meshParams.curve,
+      meshParams.topCurve,
+      meshParams.taper
     )
     applyUVRotation(geometry, rotation)
     geometry.translate(-pivotPosition.x, -pivotPosition.y, -pivotPosition.z)

@@ -6,9 +6,12 @@ import './ControlPanel.css'
 interface ControlPanelProps {
   params: {
     divisions: number
+    widthDivisions: number
     thickness: number
     length: number
     curve: number
+    topCurve: number
+    taper: number
   }
   setParams: (params: ControlPanelProps['params']) => void
   mesh?: THREE.Mesh
@@ -152,6 +155,19 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       <div className="control-group">
+        <label htmlFor="widthDivisions">Width Divisions</label>
+        <input
+          id="widthDivisions"
+          type="range"
+          min="1"
+          max="16"
+          value={params.widthDivisions}
+          onChange={(e) => handleChange('widthDivisions', parseInt(e.target.value))}
+        />
+        <span className="value">{params.widthDivisions}</span>
+      </div>
+
+      <div className="control-group">
         <label htmlFor="thickness">厚み</label>
         <input
           id="thickness"
@@ -191,6 +207,34 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           onChange={(e) => handleChange('curve', parseFloat(e.target.value))}
         />
         <span className="value">{params.curve.toFixed(1)}</span>
+      </div>
+
+      <div className="control-group">
+        <label htmlFor="topCurve">Top Curve</label>
+        <input
+          id="topCurve"
+          type="range"
+          min="0"
+          max="2"
+          step="0.1"
+          value={params.topCurve}
+          onChange={(e) => handleChange('topCurve', parseFloat(e.target.value))}
+        />
+        <span className="value">{params.topCurve.toFixed(1)}</span>
+      </div>
+
+      <div className="control-group">
+        <label htmlFor="taper">Taper</label>
+        <input
+          id="taper"
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          value={params.taper}
+          onChange={(e) => handleChange('taper', parseFloat(e.target.value))}
+        />
+        <span className="value">{params.taper.toFixed(2)}</span>
       </div>
 
       <div className="control-group toggle-row">

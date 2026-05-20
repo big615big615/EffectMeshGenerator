@@ -6,9 +6,12 @@ import './App.css'
 
 interface MeshParams {
   divisions: number
+  widthDivisions: number
   thickness: number
   length: number
   curve: number
+  topCurve: number
+  taper: number
 }
 
 interface PivotParams {
@@ -20,9 +23,12 @@ interface PivotParams {
 const App: React.FC = () => {
   const [params, setParams] = useState<MeshParams>({
     divisions: 8,
+    widthDivisions: 1,
     thickness: 0.5,
     length: 3,
     curve: 0.5,
+    topCurve: 0,
+    taper: 0,
   })
   const [wireframe, setWireframe] = useState(false)
   const [showUV, setShowUV] = useState(false)
