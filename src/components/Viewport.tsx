@@ -5,6 +5,7 @@ import { generateSlashMesh } from '../generators/slashMeshGenerator'
 import './Viewport.css'
 
 const UV_VIEW_PADDING = 1.08
+const SLASH_UV_ROTATION_OFFSET = 270
 
 interface ViewportProps {
   params: {
@@ -344,7 +345,7 @@ const Viewport: React.FC<ViewportProps> = ({
       meshParams.topCurve,
       meshParams.taper
     )
-    applyUVRotation(geometry, rotation)
+    applyUVRotation(geometry, rotation + SLASH_UV_ROTATION_OFFSET)
     geometry.translate(-pivotPosition.x, -pivotPosition.y, -pivotPosition.z)
     return geometry
   }

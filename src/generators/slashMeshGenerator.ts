@@ -54,7 +54,7 @@ export function generateSlashMesh(
       vertex.addScaledVector(normalDirection, tubeProfile * tubeRadius * tubeAmount)
 
       vertices.push(vertex.x, vertex.y, vertex.z)
-      uvs.push(u, v)
+      uvs.push(u, 1 - v)
     }
   }
 
@@ -68,8 +68,8 @@ export function generateSlashMesh(
       const c = (i + 1) * rowStride + j
       const d = c + 1
 
-      indices.push(a, b, c)
-      indices.push(b, d, c)
+      indices.push(a, c, b)
+      indices.push(b, c, d)
     }
   }
 

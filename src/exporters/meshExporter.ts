@@ -1,6 +1,5 @@
 import * as THREE from 'three'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
-import { OBJExporter } from 'three/examples/jsm/exporters/OBJExporter.js'
 import { FBXExporter } from './FBXExporter'
 
 /**
@@ -9,8 +8,8 @@ import { FBXExporter } from './FBXExporter'
 export async function exportAsFBX(mesh: THREE.Mesh, fileName: string): Promise<void> {
   try {
     const exporter = new FBXExporter()
-    const fbxString = exporter.parse(mesh)
-    const blob = new Blob([fbxString], { type: 'application/octet-stream' })
+    const fbxBuffer = exporter.parse(mesh)
+    const blob = new Blob([fbxBuffer], { type: 'application/octet-stream' })
     downloadFile(blob, `${fileName}.fbx`)
   } catch (error) {
     throw error
@@ -77,9 +76,8 @@ export async function exportAsGLTF(mesh: THREE.Mesh, fileName: string): Promise<
  */
 export async function exportAsOBJ(mesh: THREE.Mesh, fileName: string): Promise<void> {
   try {
-    const exporter = new OBJExporter()
     const clonedMesh = cloneMeshForExport(mesh)
-    const objString = exporter.parse(clonedMesh)
+    const objString = exportOBJWithDisplayedUVs(clonedMesh)
     const blob = new Blob([objString], { type: 'text/plain' })
     downloadFile(blob, `${fileName}.obj`)
   } catch (error) {
@@ -101,6 +99,64 @@ function cloneMeshForExport(mesh: THREE.Mesh): THREE.Mesh {
   clonedMesh.updateMatrixWorld(true)
 
   return clonedMesh
+}
+
+function exportOBJWithDisplayedUVs(mesh: THREE.Mesh): string {
+  const geometry = mesh.geometry
+  const positions = geometry.getAttribute('position')
+  const normals = geometry.getAttribute('normal')
+  const uvs = geometry.getAttribute('uv')
+  const indices = geometry.index
+  const vertex = new THREE.Vector3()
+  const normal = new THREE.Vector3()
+
+  mesh.updateMatrixWorld(true)
+  const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld)
+
+  let output = `o ${mesh.name || 'SlashMesh'}\n`
+
+  if (positions) {
+    for (let i = 0; i < positions.count; i++) {
+      vertex.fromBufferAttribute(positions, i)
+      vertex.applyMatrix4(mesh.matrixWorld)
+      output += `v ${vertex.x} ${vertex.y} ${vertex.z}\n`
+    }
+  }
+
+  if (uvs) {
+    for (let i = 0; i < uvs.count; i++) {
+      output += `vt ${uvs.getX(i)} ${1 - uvs.getY(i)}\n`
+    }
+  }
+
+  if (normals) {
+    for (let i = 0; i < normals.count; i++) {
+      normal.fromBufferAttribute(normals, i)
+      normal.applyMatrix3(normalMatrix).normalize()
+      output += `vn ${normal.x} ${normal.y} ${normal.z}\n`
+    }
+  }
+
+  const faceIndexCount = indices?.count ?? positions?.count ?? 0
+  for (let i = 0; i < faceIndexCount; i += 3) {
+    const face: string[] = []
+    for (let j = 0; j < 3; j++) {
+      const index = (indices ? indices.getX(i + j) : i + j) as number
+      const objIndex = index + 1
+      if (uvs && normals) {
+        face.push(`${objIndex}/${objIndex}/${objIndex}`)
+      } else if (uvs) {
+        face.push(`${objIndex}/${objIndex}`)
+      } else if (normals) {
+        face.push(`${objIndex}//${objIndex}`)
+      } else {
+        face.push(`${objIndex}`)
+      }
+    }
+    output += `f ${face.join(' ')}\n`
+  }
+
+  return output
 }
 
 /**

@@ -203,6 +203,12 @@
   background: linear-gradient(135deg, #ffa94d 0%, #f76707 100%);
 }
 
+.export-btn.fbx-btn,
+.export-btn.glb-btn,
+.export-btn.gltf-btn {
+  display: none;
+}
+
 .export-btn.obj-btn {
   background: linear-gradient(135deg, #b197fc 0%, #7950f2 100%);
 }
