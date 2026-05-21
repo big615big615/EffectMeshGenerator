@@ -17,6 +17,7 @@ interface ViewportProps {
   wireframe: boolean
   showUV: boolean
   uvRotation: number
+  mirrorZ: boolean
   showPivot: boolean
   pivot: {
     x: number
@@ -37,6 +38,7 @@ const Viewport: React.FC<ViewportProps> = ({
   wireframe,
   showUV,
   uvRotation,
+  mirrorZ,
   showPivot,
   pivot,
   scale,
@@ -90,7 +92,7 @@ const Viewport: React.FC<ViewportProps> = ({
     scene.add(directionalLight)
 
     // Initial mesh
-    const geometry = createEffectGeometry(meshType, params, uvRotation, pivot)
+    const geometry = createEffectGeometry(meshType, params, uvRotation, mirrorZ, pivot)
     const checkerTexture = createCheckerTexture(8, 8)
     checkerTextureRef.current = checkerTexture
     const material = new THREE.MeshPhongMaterial({
@@ -237,7 +239,7 @@ const Viewport: React.FC<ViewportProps> = ({
     if (!sceneRef.current || !meshRef.current) return
 
     const oldGeometry = meshRef.current.geometry
-    const newGeometry = createEffectGeometry(meshType, params, uvRotation, pivot)
+    const newGeometry = createEffectGeometry(meshType, params, uvRotation, mirrorZ, pivot)
     meshRef.current.geometry = newGeometry
     meshRef.current.position.set(pivot.x, pivot.y, pivot.z)
     if (meshWireframeRef.current) {
@@ -261,7 +263,7 @@ const Viewport: React.FC<ViewportProps> = ({
         uvSceneRef.current.add(newUVWireframe)
       }
     }
-  }, [meshType, params, uvRotation, pivot])
+  }, [meshType, params, uvRotation, mirrorZ, pivot])
 
   useEffect(() => {
     if (!pivotMarkerRef.current) return
@@ -346,12 +348,73 @@ const Viewport: React.FC<ViewportProps> = ({
     selectedMeshType: EffectMeshType,
     meshParams: EffectMeshParams,
     rotation: number,
+    shouldMirrorZ: boolean,
     pivotPosition: ViewportProps['pivot']
   ): THREE.BufferGeometry => {
     const geometry = generateEffectMesh(selectedMeshType, meshParams)
     applyUVRotation(geometry, rotation + SLASH_UV_ROTATION_OFFSET)
     geometry.translate(-pivotPosition.x, -pivotPosition.y, -pivotPosition.z)
+
+    if (shouldMirrorZ) {
+      const mirroredGeometry = createZMirroredGeometry(geometry)
+      geometry.dispose()
+      return mirroredGeometry
+    }
+
     return geometry
+  }
+
+  const createZMirroredGeometry = (sourceGeometry: THREE.BufferGeometry): THREE.BufferGeometry => {
+    const sourcePosition = sourceGeometry.getAttribute('position')
+    const sourceUV = sourceGeometry.getAttribute('uv')
+    const sourceIndex = sourceGeometry.index
+    const vertexCount = sourcePosition.count
+    const positions: number[] = []
+    const uvs: number[] = []
+    const indices: number[] = []
+
+    for (let i = 0; i < vertexCount; i++) {
+      positions.push(sourcePosition.getX(i), sourcePosition.getY(i), sourcePosition.getZ(i))
+
+      if (sourceUV) {
+        uvs.push(sourceUV.getX(i), sourceUV.getY(i))
+      }
+    }
+
+    for (let i = 0; i < vertexCount; i++) {
+      positions.push(sourcePosition.getX(i), sourcePosition.getY(i), -sourcePosition.getZ(i))
+
+      if (sourceUV) {
+        uvs.push(sourceUV.getX(i), sourceUV.getY(i))
+      }
+    }
+
+    if (sourceIndex) {
+      for (let i = 0; i < sourceIndex.count; i += 3) {
+        const a = sourceIndex.getX(i)
+        const b = sourceIndex.getX(i + 1)
+        const c = sourceIndex.getX(i + 2)
+
+        indices.push(a, b, c)
+        indices.push(vertexCount + a, vertexCount + c, vertexCount + b)
+      }
+    } else {
+      for (let i = 0; i < vertexCount; i += 3) {
+        indices.push(i, i + 1, i + 2)
+        indices.push(vertexCount + i, vertexCount + i + 2, vertexCount + i + 1)
+      }
+    }
+
+    const mirroredGeometry = new THREE.BufferGeometry()
+    mirroredGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3))
+
+    if (sourceUV) {
+      mirroredGeometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2))
+    }
+
+    mirroredGeometry.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1))
+    mirroredGeometry.computeVertexNormals()
+    return mirroredGeometry
   }
 
   const applyUVRotation = (geometry: THREE.BufferGeometry, rotation: number) => {

@@ -20,6 +20,8 @@ interface ControlPanelProps {
   setShowUV: (value: boolean) => void
   uvRotation: number
   setUVRotation: (value: number) => void
+  mirrorZ: boolean
+  setMirrorZ: (value: boolean) => void
   showPivot: boolean
   setShowPivot: (value: boolean) => void
   pivot: {
@@ -48,6 +50,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   setShowUV,
   uvRotation,
   setUVRotation,
+  mirrorZ,
+  setMirrorZ,
   showPivot,
   setShowPivot,
   pivot,
@@ -370,6 +374,17 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           onClick={() => setUVRotation((uvRotation + 90) % 360)}
         >
           {uvRotation} deg
+        </button>
+      </div>
+
+      <div className="control-group toggle-row">
+        <span>Mirror Z</span>
+        <button
+          type="button"
+          className={`toggle-btn ${mirrorZ ? 'active' : ''}`}
+          onClick={() => setMirrorZ(!mirrorZ)}
+        >
+          {mirrorZ ? 'ON' : 'OFF'}
         </button>
       </div>
 

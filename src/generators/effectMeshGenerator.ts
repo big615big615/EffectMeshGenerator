@@ -101,18 +101,47 @@ function generateRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
 function generateArcMesh(params: EffectMeshParams): THREE.BufferGeometry {
   const { lengthSegments, widthSegments } = getSegmentCounts(params)
   const curveAmount = getCurveAmount(params)
-  const arcAngle = THREE.MathUtils.lerp(Math.PI * 0.35, Math.PI * 1.5, curveAmount)
-  const radius = Math.max(params.length / arcAngle, params.thickness * 0.75, 0.001)
   const liftAmount = getTopCurveAmount(params)
+  const spreadAmount = Math.max(0, params.spread)
+
+  if (curveAmount <= 0.0001) {
+    const halfLength = params.length / 2
+
+    return createGridGeometry(lengthSegments, widthSegments, (u, v) => {
+      const currentWidth = getTaperedWidth(params, u)
+      const lowerEdgeSpreadProfile = 1 - v
+
+      return new THREE.Vector3(
+        THREE.MathUtils.lerp(-halfLength, halfLength, u),
+        (v - 0.5) * currentWidth,
+        Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount +
+          lowerEdgeSpreadProfile * currentWidth * spreadAmount
+      )
+    })
+  }
+
+  const arcAngle = curveAmount * Math.PI * 2
+  const outerRadius = Math.max(params.length / arcAngle + 1, params.thickness, 0.001)
+  const thicknessFillAmount = THREE.MathUtils.clamp((params.thickness - 0.1) / 1.9, 0, 1)
+  const taperAmount = THREE.MathUtils.clamp(params.taper, 0, 1)
 
   return createGridGeometry(lengthSegments, widthSegments, (u, v) => {
     const angle = THREE.MathUtils.lerp(-arcAngle / 2, arcAngle / 2, u)
     const radialDirection = new THREE.Vector3(Math.sin(angle), Math.cos(angle), 0)
     const currentWidth = getTaperedWidth(params, u)
-    const currentRadius = radius + (v - 0.5) * currentWidth
+    const endSharpnessProfile = Math.sin(Math.PI * u)
+    const centerTaperProfile = 1 - taperAmount * 0.5
+    const arcTaperProfile =
+      THREE.MathUtils.lerp(1, endSharpnessProfile, taperAmount) * centerTaperProfile
+    const radialWidth = THREE.MathUtils.lerp(currentWidth, outerRadius, thicknessFillAmount)
+    const taperedRadialWidth = radialWidth * arcTaperProfile
+    const currentRadius = Math.max(0, outerRadius - (1 - v) * taperedRadialWidth)
+    const lowerEdgeSpreadProfile = 1 - v
     const vertex = radialDirection.multiplyScalar(currentRadius)
-    vertex.y -= radius
-    vertex.z = Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount
+    vertex.y -= outerRadius
+    vertex.z =
+      Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount +
+      lowerEdgeSpreadProfile * currentWidth * spreadAmount * arcTaperProfile
     return vertex
   })
 }

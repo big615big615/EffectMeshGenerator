@@ -32,6 +32,7 @@ const App: React.FC = () => {
   const [wireframe, setWireframe] = useState(false)
   const [showUV, setShowUV] = useState(false)
   const [uvRotation, setUVRotation] = useState(0)
+  const [mirrorZ, setMirrorZ] = useState(false)
   const [showPivot, setShowPivot] = useState(false)
   const [pivot, setPivot] = useState<PivotParams>({ x: 0, y: 0, z: 0 })
   const [scale, setScale] = useState<ScaleParams>({ x: 1, y: 1, z: 1 })
@@ -46,6 +47,7 @@ const App: React.FC = () => {
           wireframe={wireframe}
           showUV={showUV}
           uvRotation={uvRotation}
+          mirrorZ={mirrorZ}
           showPivot={showPivot}
           pivot={pivot}
           scale={scale}
@@ -65,6 +67,8 @@ const App: React.FC = () => {
           setShowUV={setShowUV}
           uvRotation={uvRotation}
           setUVRotation={setUVRotation}
+          mirrorZ={mirrorZ}
+          setMirrorZ={setMirrorZ}
           showPivot={showPivot}
           setShowPivot={setShowPivot}
           pivot={pivot}
