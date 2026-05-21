@@ -1,7 +1,16 @@
 import * as THREE from 'three'
 import { generateSlashMesh } from './slashMeshGenerator'
 
-export type EffectMeshType = 'slash' | 'ribbon' | 'arc' | 'spiral' | 'burst' | 'plane'
+export type EffectMeshType =
+  | 'slash'
+  | 'ribbon'
+  | 'arc'
+  | 'spiral'
+  | 'burst'
+  | 'plane'
+  | 'sphere'
+  | 'hemisphere'
+  | 'openCylinder'
 
 export interface EffectMeshParams {
   divisions: number
@@ -11,6 +20,7 @@ export interface EffectMeshParams {
   curve: number
   topCurve: number
   taper: number
+  spread: number
 }
 
 export const EFFECT_MESH_TYPE_OPTIONS: ReadonlyArray<{
@@ -23,6 +33,9 @@ export const EFFECT_MESH_TYPE_OPTIONS: ReadonlyArray<{
   { value: 'spiral', label: 'Spiral / Vortex' },
   { value: 'burst', label: 'Radial Burst / Fan' },
   { value: 'plane', label: 'Plane / Quad' },
+  { value: 'sphere', label: 'Sphere' },
+  { value: 'hemisphere', label: 'Hemisphere' },
+  { value: 'openCylinder', label: 'Cylinder / No Caps' },
 ]
 
 export function generateEffectMesh(
@@ -40,6 +53,12 @@ export function generateEffectMesh(
       return generateBurstMesh(params)
     case 'plane':
       return generatePlaneMesh(params)
+    case 'sphere':
+      return generateSphereMesh(params)
+    case 'hemisphere':
+      return generateHemisphereMesh(params)
+    case 'openCylinder':
+      return generateOpenCylinderMesh(params)
     case 'slash':
     default:
       return generateSlashMesh(
@@ -160,6 +179,50 @@ function generatePlaneMesh(params: EffectMeshParams): THREE.BufferGeometry {
   })
 }
 
+function generateSphereMesh(params: EffectMeshParams): THREE.BufferGeometry {
+  const { latitudeSegments, longitudeSegments } = getSphericalSegmentCounts(params)
+  const radius = getSphericalRadius(params)
+
+  return createGridGeometry(latitudeSegments, longitudeSegments, (u, v) => {
+    const theta = u * Math.PI
+    const phi = -v * Math.PI * 2
+    return getSphericalVertex(radius, theta, phi)
+  })
+}
+
+function generateHemisphereMesh(params: EffectMeshParams): THREE.BufferGeometry {
+  const { latitudeSegments, longitudeSegments } = getSphericalSegmentCounts(params)
+  const radius = getSphericalRadius(params)
+
+  return createGridGeometry(latitudeSegments, longitudeSegments, (u, v) => {
+    const theta = u * Math.PI * 0.5
+    const phi = -v * Math.PI * 2
+    return getSphericalVertex(radius, theta, phi)
+  })
+}
+
+function generateOpenCylinderMesh(params: EffectMeshParams): THREE.BufferGeometry {
+  const heightSegments = Math.max(1, Math.floor(params.divisions))
+  const radialSegments = Math.max(8, Math.floor(params.widthDivisions * 4))
+  const halfHeight = params.length / 2
+  const tubeRadius = Math.max(params.thickness * 0.5, 0.001)
+  const curveAmount = getCurveAmount(params)
+  const spreadAmount = Math.max(0, params.spread)
+
+  return createGridGeometry(heightSegments, radialSegments, (u, v) => {
+    const phi = v * Math.PI * 2
+    const sideCurveProfile = Math.sin(Math.PI * u)
+    const topScale = THREE.MathUtils.lerp(1, 1 + spreadAmount, u)
+    const currentRadius = tubeRadius * topScale * (1 + curveAmount * sideCurveProfile * 2)
+
+    return new THREE.Vector3(
+      Math.cos(phi) * currentRadius,
+      THREE.MathUtils.lerp(-halfHeight, halfHeight, u),
+      Math.sin(phi) * currentRadius
+    )
+  })
+}
+
 function createGridGeometry(
   lengthSegments: number,
   widthSegments: number,
@@ -211,6 +274,30 @@ function getSegmentCounts(params: EffectMeshParams): {
     lengthSegments: Math.max(1, Math.floor(params.divisions)),
     widthSegments: Math.max(1, Math.floor(params.widthDivisions)),
   }
+}
+
+function getSphericalSegmentCounts(params: EffectMeshParams): {
+  latitudeSegments: number
+  longitudeSegments: number
+} {
+  return {
+    latitudeSegments: Math.max(4, Math.floor(params.divisions)),
+    longitudeSegments: Math.max(8, Math.floor(params.widthDivisions * 4)),
+  }
+}
+
+function getSphericalRadius(params: EffectMeshParams): number {
+  return Math.max(params.length * 0.5, params.thickness * 0.5, 0.001)
+}
+
+function getSphericalVertex(radius: number, theta: number, phi: number): THREE.Vector3 {
+  const sinTheta = Math.sin(theta)
+
+  return new THREE.Vector3(
+    Math.cos(phi) * sinTheta * radius,
+    Math.cos(theta) * radius,
+    Math.sin(phi) * sinTheta * radius
+  )
 }
 
 function getCurveAmount(params: EffectMeshParams): number {

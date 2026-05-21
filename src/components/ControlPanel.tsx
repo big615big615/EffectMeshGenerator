@@ -28,6 +28,12 @@ interface ControlPanelProps {
     z: number
   }
   setPivot: (value: ControlPanelProps['pivot']) => void
+  scale: {
+    x: number
+    y: number
+    z: number
+  }
+  setScale: (value: ControlPanelProps['scale']) => void
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -46,10 +52,17 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   setShowPivot,
   pivot,
   setPivot,
+  scale,
+  setScale,
 }) => {
   const [isExporting, setIsExporting] = useState(false)
   const pivotDragRef = useRef<{
     key: keyof ControlPanelProps['pivot']
+    startX: number
+    startValue: number
+  } | null>(null)
+  const scaleDragRef = useRef<{
+    key: keyof ControlPanelProps['scale']
     startX: number
     startValue: number
   } | null>(null)
@@ -59,14 +72,28 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   }
 
   const handleMeshTypeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setMeshType(event.target.value as EffectMeshType)
+    const nextMeshType = event.target.value as EffectMeshType
+    setMeshType(nextMeshType)
+
+    if (nextMeshType !== 'openCylinder' && params.divisions < 3) {
+      setParams({ ...params, divisions: 3 })
+    }
   }
 
   const handlePivotChange = (key: keyof ControlPanelProps['pivot'], value: number) => {
     setPivot({ ...pivot, [key]: value })
   }
 
+  const handleScaleChange = (key: keyof ControlPanelProps['scale'], value: number) => {
+    setScale({ ...scale, [key]: value })
+  }
+
   const roundPivotValue = (value: number) => Math.round(value * 1000) / 1000
+  const roundScaleValue = (value: number) => Math.round(value * 1000) / 1000
+  const parseScaleInput = (value: string) => {
+    const parsedValue = parseFloat(value)
+    return Number.isFinite(parsedValue) ? parsedValue : 1
+  }
 
   const handlePivotDragStart = (
     event: React.PointerEvent<HTMLInputElement>,
@@ -99,6 +126,47 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
     const handlePointerUp = () => {
       pivotDragRef.current = null
+      document.body.style.cursor = previousCursor
+      document.body.style.userSelect = previousUserSelect
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+  }
+
+  const handleScaleDragStart = (
+    event: React.PointerEvent<HTMLInputElement>,
+    key: keyof ControlPanelProps['scale']
+  ) => {
+    if (event.button !== 0) return
+
+    scaleDragRef.current = {
+      key,
+      startX: event.clientX,
+      startValue: scale[key],
+    }
+
+    const previousCursor = document.body.style.cursor
+    const previousUserSelect = document.body.style.userSelect
+    document.body.style.cursor = 'ew-resize'
+    document.body.style.userSelect = 'none'
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const drag = scaleDragRef.current
+      if (!drag) return
+
+      const deltaX = moveEvent.clientX - drag.startX
+      if (Math.abs(deltaX) < 2) return
+
+      moveEvent.preventDefault()
+      const sensitivity = moveEvent.altKey ? 0.001 : moveEvent.shiftKey ? 0.005 : 0.01
+      handleScaleChange(drag.key, roundScaleValue(drag.startValue + deltaX * sensitivity))
+    }
+
+    const handlePointerUp = () => {
+      scaleDragRef.current = null
       document.body.style.cursor = previousCursor
       document.body.style.userSelect = previousUserSelect
       window.removeEventListener('pointermove', handlePointerMove)
@@ -167,7 +235,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         <input
           id="divisions"
           type="range"
-          min="3"
+          min={meshType === 'openCylinder' ? '1' : '3'}
           max="32"
           value={params.divisions}
           onChange={(e) => handleChange('divisions', parseInt(e.target.value))}
@@ -207,9 +275,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         <input
           id="length"
           type="range"
-          min="1"
+          min="0.1"
           max="10"
-          step="0.5"
+          step="0.1"
           value={params.length}
           onChange={(e) => handleChange('length', parseFloat(e.target.value))}
         />
@@ -256,6 +324,20 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           onChange={(e) => handleChange('taper', parseFloat(e.target.value))}
         />
         <span className="value">{params.taper.toFixed(2)}</span>
+      </div>
+
+      <div className="control-group">
+        <label htmlFor="spread">Spread</label>
+        <input
+          id="spread"
+          type="range"
+          min="0"
+          max="3"
+          step="0.05"
+          value={params.spread}
+          onChange={(e) => handleChange('spread', parseFloat(e.target.value))}
+        />
+        <span className="value">{params.spread.toFixed(2)}</span>
       </div>
 
       <div className="control-group toggle-row">
@@ -339,6 +421,48 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               value={pivot.z}
               onPointerDown={(e) => handlePivotDragStart(e, 'z')}
               onChange={(e) => handlePivotChange('z', parseFloat(e.target.value) || 0)}
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="control-group">
+        <label>Scale</label>
+        <div className="vector-inputs">
+          <label>
+            X
+            <input
+              type="number"
+              step="0.1"
+              className="draggable-number"
+              title="Drag horizontally to adjust"
+              value={scale.x}
+              onPointerDown={(e) => handleScaleDragStart(e, 'x')}
+              onChange={(e) => handleScaleChange('x', parseScaleInput(e.target.value))}
+            />
+          </label>
+          <label>
+            Y
+            <input
+              type="number"
+              step="0.1"
+              className="draggable-number"
+              title="Drag horizontally to adjust"
+              value={scale.y}
+              onPointerDown={(e) => handleScaleDragStart(e, 'y')}
+              onChange={(e) => handleScaleChange('y', parseScaleInput(e.target.value))}
+            />
+          </label>
+          <label>
+            Z
+            <input
+              type="number"
+              step="0.1"
+              className="draggable-number"
+              title="Drag horizontally to adjust"
+              value={scale.z}
+              onPointerDown={(e) => handleScaleDragStart(e, 'z')}
+              onChange={(e) => handleScaleChange('z', parseScaleInput(e.target.value))}
             />
           </label>
         </div>

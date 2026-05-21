@@ -23,6 +23,11 @@ interface ViewportProps {
     y: number
     z: number
   }
+  scale: {
+    x: number
+    y: number
+    z: number
+  }
   onMeshReady?: (mesh: THREE.Mesh) => void
 }
 
@@ -34,6 +39,7 @@ const Viewport: React.FC<ViewportProps> = ({
   uvRotation,
   showPivot,
   pivot,
+  scale,
   onMeshReady,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -99,6 +105,7 @@ const Viewport: React.FC<ViewportProps> = ({
     })
     const mesh = new THREE.Mesh(geometry, material)
     mesh.position.set(pivot.x, pivot.y, pivot.z)
+    mesh.scale.set(scale.x, scale.y, scale.z)
     const meshWireframe = createMeshWireframe(geometry)
     meshWireframe.visible = wireframe
     mesh.add(meshWireframe)
@@ -262,6 +269,12 @@ const Viewport: React.FC<ViewportProps> = ({
     pivotMarkerRef.current.visible = showPivot
     pivotMarkerRef.current.position.set(pivot.x, pivot.y, pivot.z)
   }, [showPivot, pivot])
+
+  useEffect(() => {
+    if (!meshRef.current) return
+
+    meshRef.current.scale.set(scale.x, scale.y, scale.z)
+  }, [scale])
 
   // Sync wireframe state and checker texture display with the mesh material
   useEffect(() => {

@@ -11,6 +11,12 @@ interface PivotParams {
   z: number
 }
 
+interface ScaleParams {
+  x: number
+  y: number
+  z: number
+}
+
 const App: React.FC = () => {
   const [meshType, setMeshType] = useState<EffectMeshType>('slash')
   const [params, setParams] = useState<EffectMeshParams>({
@@ -21,12 +27,14 @@ const App: React.FC = () => {
     curve: 0.5,
     topCurve: 0,
     taper: 0,
+    spread: 0,
   })
   const [wireframe, setWireframe] = useState(false)
   const [showUV, setShowUV] = useState(false)
   const [uvRotation, setUVRotation] = useState(0)
   const [showPivot, setShowPivot] = useState(false)
   const [pivot, setPivot] = useState<PivotParams>({ x: 0, y: 0, z: 0 })
+  const [scale, setScale] = useState<ScaleParams>({ x: 1, y: 1, z: 1 })
   const [currentMesh, setCurrentMesh] = useState<THREE.Mesh | undefined>(undefined)
 
   return (
@@ -40,6 +48,7 @@ const App: React.FC = () => {
           uvRotation={uvRotation}
           showPivot={showPivot}
           pivot={pivot}
+          scale={scale}
           onMeshReady={setCurrentMesh}
         />
       </div>
@@ -60,6 +69,8 @@ const App: React.FC = () => {
           setShowPivot={setShowPivot}
           pivot={pivot}
           setPivot={setPivot}
+          scale={scale}
+          setScale={setScale}
         />
       </div>
     </div>
