@@ -2,17 +2,8 @@ import React, { useState } from 'react'
 import * as THREE from 'three'
 import Viewport from './components/Viewport'
 import ControlPanel from './components/ControlPanel'
+import type { EffectMeshParams, EffectMeshType } from './generators/effectMeshGenerator'
 import './App.css'
-
-interface MeshParams {
-  divisions: number
-  widthDivisions: number
-  thickness: number
-  length: number
-  curve: number
-  topCurve: number
-  taper: number
-}
 
 interface PivotParams {
   x: number
@@ -21,7 +12,8 @@ interface PivotParams {
 }
 
 const App: React.FC = () => {
-  const [params, setParams] = useState<MeshParams>({
+  const [meshType, setMeshType] = useState<EffectMeshType>('slash')
+  const [params, setParams] = useState<EffectMeshParams>({
     divisions: 8,
     widthDivisions: 1,
     thickness: 0.5,
@@ -41,6 +33,7 @@ const App: React.FC = () => {
     <div className="app-container">
       <div className="viewport-container">
         <Viewport
+          meshType={meshType}
           params={params}
           wireframe={wireframe}
           showUV={showUV}
@@ -52,6 +45,8 @@ const App: React.FC = () => {
       </div>
       <div className="control-panel-container">
         <ControlPanel
+          meshType={meshType}
+          setMeshType={setMeshType}
           params={params}
           setParams={setParams}
           mesh={currentMesh}

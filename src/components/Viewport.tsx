@@ -1,22 +1,19 @@
 import React, { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { generateSlashMesh } from '../generators/slashMeshGenerator'
+import {
+  generateEffectMesh,
+  type EffectMeshParams,
+  type EffectMeshType,
+} from '../generators/effectMeshGenerator'
 import './Viewport.css'
 
 const UV_VIEW_PADDING = 1.08
 const SLASH_UV_ROTATION_OFFSET = 270
 
 interface ViewportProps {
-  params: {
-    divisions: number
-    widthDivisions: number
-    thickness: number
-    length: number
-    curve: number
-    topCurve: number
-    taper: number
-  }
+  meshType: EffectMeshType
+  params: EffectMeshParams
   wireframe: boolean
   showUV: boolean
   uvRotation: number
@@ -30,6 +27,7 @@ interface ViewportProps {
 }
 
 const Viewport: React.FC<ViewportProps> = ({
+  meshType,
   params,
   wireframe,
   showUV,
@@ -86,7 +84,7 @@ const Viewport: React.FC<ViewportProps> = ({
     scene.add(directionalLight)
 
     // Initial mesh
-    const geometry = createSlashGeometry(params, uvRotation, pivot)
+    const geometry = createEffectGeometry(meshType, params, uvRotation, pivot)
     const checkerTexture = createCheckerTexture(8, 8)
     checkerTextureRef.current = checkerTexture
     const material = new THREE.MeshPhongMaterial({
@@ -232,7 +230,7 @@ const Viewport: React.FC<ViewportProps> = ({
     if (!sceneRef.current || !meshRef.current) return
 
     const oldGeometry = meshRef.current.geometry
-    const newGeometry = createSlashGeometry(params, uvRotation, pivot)
+    const newGeometry = createEffectGeometry(meshType, params, uvRotation, pivot)
     meshRef.current.geometry = newGeometry
     meshRef.current.position.set(pivot.x, pivot.y, pivot.z)
     if (meshWireframeRef.current) {
@@ -256,7 +254,7 @@ const Viewport: React.FC<ViewportProps> = ({
         uvSceneRef.current.add(newUVWireframe)
       }
     }
-  }, [params, uvRotation, pivot])
+  }, [meshType, params, uvRotation, pivot])
 
   useEffect(() => {
     if (!pivotMarkerRef.current) return
@@ -331,20 +329,13 @@ const Viewport: React.FC<ViewportProps> = ({
     return texture
   }
 
-  const createSlashGeometry = (
-    meshParams: ViewportProps['params'],
+  const createEffectGeometry = (
+    selectedMeshType: EffectMeshType,
+    meshParams: EffectMeshParams,
     rotation: number,
     pivotPosition: ViewportProps['pivot']
   ): THREE.BufferGeometry => {
-    const geometry = generateSlashMesh(
-      meshParams.divisions,
-      meshParams.widthDivisions,
-      meshParams.thickness,
-      meshParams.length,
-      meshParams.curve,
-      meshParams.topCurve,
-      meshParams.taper
-    )
+    const geometry = generateEffectMesh(selectedMeshType, meshParams)
     applyUVRotation(geometry, rotation + SLASH_UV_ROTATION_OFFSET)
     geometry.translate(-pivotPosition.x, -pivotPosition.y, -pivotPosition.z)
     return geometry

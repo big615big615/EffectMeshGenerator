@@ -1,19 +1,18 @@
 import React, { useRef, useState } from 'react'
 import * as THREE from 'three'
 import * as meshExporter from '../exporters/meshExporter'
+import {
+  EFFECT_MESH_TYPE_OPTIONS,
+  type EffectMeshParams,
+  type EffectMeshType,
+} from '../generators/effectMeshGenerator'
 import './ControlPanel.css'
 
 interface ControlPanelProps {
-  params: {
-    divisions: number
-    widthDivisions: number
-    thickness: number
-    length: number
-    curve: number
-    topCurve: number
-    taper: number
-  }
-  setParams: (params: ControlPanelProps['params']) => void
+  meshType: EffectMeshType
+  setMeshType: (value: EffectMeshType) => void
+  params: EffectMeshParams
+  setParams: (params: EffectMeshParams) => void
   mesh?: THREE.Mesh
   wireframe: boolean
   setWireframe: (value: boolean) => void
@@ -32,6 +31,8 @@ interface ControlPanelProps {
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = ({
+  meshType,
+  setMeshType,
   params,
   setParams,
   mesh,
@@ -55,6 +56,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
   const handleChange = (key: keyof ControlPanelProps['params'], value: number) => {
     setParams({ ...params, [key]: value })
+  }
+
+  const handleMeshTypeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setMeshType(event.target.value as EffectMeshType)
   }
 
   const handlePivotChange = (key: keyof ControlPanelProps['pivot'], value: number) => {
@@ -113,7 +118,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     setIsExporting(true)
     try {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
-      const fileName = `slash-effect-${timestamp}`
+      const fileName = `${meshType}-effect-${timestamp}`
 
       switch (format) {
         case 'fbx':
@@ -140,6 +145,22 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   return (
     <div className="control-panel">
       <h2>メッシュ設定</h2>
+
+      <div className="control-group">
+        <label htmlFor="meshType">Mesh Type</label>
+        <select
+          id="meshType"
+          className="mesh-type-select"
+          value={meshType}
+          onChange={handleMeshTypeChange}
+        >
+          {EFFECT_MESH_TYPE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <div className="control-group">
         <label htmlFor="divisions">分割数</label>

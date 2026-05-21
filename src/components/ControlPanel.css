@@ -38,6 +38,22 @@
   cursor: pointer;
 }
 
+.mesh-type-select {
+  width: 100%;
+  background: #181818;
+  color: #e0e0e0;
+  border: 1px solid #404040;
+  border-radius: 4px;
+  padding: 9px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.mesh-type-select:focus {
+  border-color: #00ff88;
+  outline: none;
+}
+
 .control-group input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
