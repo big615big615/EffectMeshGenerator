@@ -1,11 +1,15 @@
 import * as THREE from 'three'
 import { generateSlashMesh } from './slashMeshGenerator'
 
+const ARC_VERTICAL_OFFSET = 1.5
+
 export type EffectMeshType =
   | 'slash'
   | 'ribbon'
   | 'arc'
   | 'spiral'
+  | 'risingSpiralRibbon'
+  | 'cylinderSpiralRibbon'
   | 'burst'
   | 'plane'
   | 'sphere'
@@ -21,6 +25,8 @@ export interface EffectMeshParams {
   topCurve: number
   taper: number
   spread: number
+  twist: number
+  waveCount: number
 }
 
 export const EFFECT_MESH_TYPE_OPTIONS: ReadonlyArray<{
@@ -31,6 +37,8 @@ export const EFFECT_MESH_TYPE_OPTIONS: ReadonlyArray<{
   { value: 'ribbon', label: 'Ribbon / Trail' },
   { value: 'arc', label: 'Arc / Ring Segment' },
   { value: 'spiral', label: 'Spiral / Vortex' },
+  { value: 'risingSpiralRibbon', label: 'Rising Spiral Ribbon / Tornado' },
+  { value: 'cylinderSpiralRibbon', label: 'Cylinder Spiral Ribbon / Tornado' },
   { value: 'burst', label: 'Radial Burst / Fan' },
   { value: 'plane', label: 'Plane / Quad' },
   { value: 'sphere', label: 'Sphere' },
@@ -49,6 +57,10 @@ export function generateEffectMesh(
       return generateArcMesh(params)
     case 'spiral':
       return generateSpiralMesh(params)
+    case 'risingSpiralRibbon':
+      return generateRisingSpiralRibbonMesh(params)
+    case 'cylinderSpiralRibbon':
+      return generateCylinderSpiralRibbonMesh(params)
     case 'burst':
       return generateBurstMesh(params)
     case 'plane':
@@ -79,11 +91,12 @@ function generateRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
   const curveAmount = getCurveAmount(params)
   const sideOffset = curveAmount * params.length * 0.3
   const liftAmount = getTopCurveAmount(params)
+  const waveCount = Math.max(1, params.waveCount)
   const centerPoints: THREE.Vector3[] = []
 
   for (let i = 0; i <= lengthSegments; i++) {
     const u = i / lengthSegments
-    const x = Math.sin((u - 0.5) * Math.PI) * sideOffset
+    const x = Math.sin((u - 0.5) * Math.PI * waveCount) * sideOffset
     const y = THREE.MathUtils.lerp(-halfLength, halfLength, u)
     centerPoints.push(new THREE.Vector3(x, y, 0))
   }
@@ -91,9 +104,16 @@ function generateRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
   return createGridGeometry(lengthSegments, widthSegments, (u, v, i) => {
     const tangent = getPolylineTangent(centerPoints, i)
     const sideDirection = getPlanarSideDirection(tangent)
+    const normalDirection = getSurfaceNormalDirection(tangent, sideDirection)
+    const twistRotation = new THREE.Quaternion().setFromAxisAngle(
+      tangent,
+      (u - 0.5) * Math.PI * params.twist
+    )
+    const twistedSideDirection = sideDirection.clone().applyQuaternion(twistRotation)
+    const twistedNormalDirection = normalDirection.clone().applyQuaternion(twistRotation)
     const currentWidth = getTaperedWidth(params, u)
-    const vertex = centerPoints[i].clone().addScaledVector(sideDirection, (v - 0.5) * currentWidth)
-    vertex.z += Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount
+    const vertex = centerPoints[i].clone().addScaledVector(twistedSideDirection, (v - 0.5) * currentWidth)
+    vertex.addScaledVector(twistedNormalDirection, Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount)
     return vertex
   })
 }
@@ -113,7 +133,7 @@ function generateArcMesh(params: EffectMeshParams): THREE.BufferGeometry {
 
       return new THREE.Vector3(
         THREE.MathUtils.lerp(-halfLength, halfLength, u),
-        (v - 0.5) * currentWidth,
+        (v - 0.5) * currentWidth + ARC_VERTICAL_OFFSET,
         Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount +
           lowerEdgeSpreadProfile * currentWidth * spreadAmount
       )
@@ -139,6 +159,7 @@ function generateArcMesh(params: EffectMeshParams): THREE.BufferGeometry {
     const lowerEdgeSpreadProfile = 1 - v
     const vertex = radialDirection.multiplyScalar(currentRadius)
     vertex.y -= outerRadius
+    vertex.y += ARC_VERTICAL_OFFSET
     vertex.z =
       Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount +
       lowerEdgeSpreadProfile * currentWidth * spreadAmount * arcTaperProfile
@@ -168,6 +189,83 @@ function generateSpiralMesh(params: EffectMeshParams): THREE.BufferGeometry {
     const currentWidth = getTaperedWidth(params, u)
     const vertex = centerPoints[i].clone().addScaledVector(sideDirection, (v - 0.5) * currentWidth)
     vertex.z += Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount
+    return vertex
+  })
+}
+
+function generateRisingSpiralRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
+  const { lengthSegments, widthSegments } = getSegmentCounts(params)
+  const halfHeight = params.length / 2
+  const curveAmount = getCurveAmount(params)
+  const liftAmount = getTopCurveAmount(params)
+  const spreadAmount = Math.max(0, params.spread)
+  const turns = Math.max(0.25, params.waveCount) * THREE.MathUtils.lerp(0.5, 1.5, curveAmount)
+  const baseRadius = Math.max(params.thickness * 0.2, params.length * 0.025, 0.001)
+  const topRadius = baseRadius + params.length * THREE.MathUtils.lerp(0.08, 0.28, curveAmount) * (1 + spreadAmount)
+  const centerPoints: THREE.Vector3[] = []
+
+  for (let i = 0; i <= lengthSegments; i++) {
+    const u = i / lengthSegments
+    const angle = u * Math.PI * 2 * turns
+    const radius = THREE.MathUtils.lerp(baseRadius, topRadius, u)
+    const y = THREE.MathUtils.lerp(-halfHeight, halfHeight, u)
+    centerPoints.push(new THREE.Vector3(Math.cos(angle) * radius, y, Math.sin(angle) * radius))
+  }
+
+  return createGridGeometry(lengthSegments, widthSegments, (u, v, i) => {
+    const tangent = getPolylineTangent(centerPoints, i)
+    const radialDirection = getHorizontalRadialDirection(centerPoints[i])
+    const sideDirection = getSurfaceSideDirection(tangent, radialDirection)
+    const normalDirection = getSurfaceNormalDirection(tangent, sideDirection)
+    const twistRotation = new THREE.Quaternion().setFromAxisAngle(
+      tangent,
+      (u - 0.5) * Math.PI * params.twist
+    )
+    const twistedSideDirection = sideDirection.clone().applyQuaternion(twistRotation)
+    const twistedNormalDirection = normalDirection.clone().applyQuaternion(twistRotation)
+    const currentWidth = getTaperedWidth(params, u)
+    const vertex = centerPoints[i].clone().addScaledVector(twistedSideDirection, (v - 0.5) * currentWidth)
+    vertex.addScaledVector(twistedNormalDirection, Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount)
+    return vertex
+  })
+}
+
+function generateCylinderSpiralRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
+  const { lengthSegments, widthSegments } = getSegmentCounts(params)
+  const halfHeight = params.length / 2
+  const curveAmount = getCurveAmount(params)
+  const liftAmount = getTopCurveAmount(params)
+  const spreadAmount = Math.max(0, params.spread)
+  const turns = Math.max(0.25, params.waveCount)
+  const baseRadius = Math.max(
+    params.length * THREE.MathUtils.lerp(0.08, 0.24, curveAmount),
+    params.thickness * 0.75,
+    0.001
+  )
+  const centerPoints: THREE.Vector3[] = []
+
+  for (let i = 0; i <= lengthSegments; i++) {
+    const u = i / lengthSegments
+    const angle = u * Math.PI * 2 * turns
+    const radius = baseRadius * (1 + spreadAmount * u)
+    const y = THREE.MathUtils.lerp(-halfHeight, halfHeight, u)
+    centerPoints.push(new THREE.Vector3(Math.cos(angle) * radius, y, Math.sin(angle) * radius))
+  }
+
+  return createGridGeometry(lengthSegments, widthSegments, (u, v, i) => {
+    const tangent = getPolylineTangent(centerPoints, i)
+    const radialDirection = getHorizontalRadialDirection(centerPoints[i])
+    const surfaceNormalDirection = getSurfaceSideDirection(tangent, radialDirection)
+    const sideDirection = getSideDirectionForSurfaceNormal(tangent, surfaceNormalDirection)
+    const twistRotation = new THREE.Quaternion().setFromAxisAngle(
+      tangent,
+      (u - 0.5) * Math.PI * params.twist
+    )
+    const twistedSideDirection = sideDirection.clone().applyQuaternion(twistRotation)
+    const twistedNormalDirection = surfaceNormalDirection.clone().applyQuaternion(twistRotation)
+    const currentWidth = getTaperedWidth(params, u)
+    const vertex = centerPoints[i].clone().addScaledVector(twistedSideDirection, (v - 0.5) * currentWidth)
+    vertex.addScaledVector(twistedNormalDirection, Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount)
     return vertex
   })
 }
@@ -357,4 +455,48 @@ function getPlanarSideDirection(tangent: THREE.Vector3): THREE.Vector3 {
   }
 
   return sideDirection.normalize()
+}
+
+function getHorizontalRadialDirection(point: THREE.Vector3): THREE.Vector3 {
+  const radialDirection = new THREE.Vector3(point.x, 0, point.z)
+
+  if (radialDirection.lengthSq() < 0.000001) {
+    return new THREE.Vector3(1, 0, 0)
+  }
+
+  return radialDirection.normalize()
+}
+
+function getSurfaceSideDirection(tangent: THREE.Vector3, preferredDirection: THREE.Vector3): THREE.Vector3 {
+  const tangentComponent = preferredDirection.dot(tangent)
+  const sideDirection = preferredDirection.clone().addScaledVector(tangent, -tangentComponent)
+
+  if (sideDirection.lengthSq() < 0.000001) {
+    return getPlanarSideDirection(tangent)
+  }
+
+  return sideDirection.normalize()
+}
+
+function getSideDirectionForSurfaceNormal(
+  tangent: THREE.Vector3,
+  surfaceNormalDirection: THREE.Vector3
+): THREE.Vector3 {
+  const sideDirection = new THREE.Vector3().crossVectors(surfaceNormalDirection, tangent)
+
+  if (sideDirection.lengthSq() < 0.000001) {
+    return getPlanarSideDirection(tangent)
+  }
+
+  return sideDirection.normalize()
+}
+
+function getSurfaceNormalDirection(tangent: THREE.Vector3, sideDirection: THREE.Vector3): THREE.Vector3 {
+  const normalDirection = new THREE.Vector3().crossVectors(tangent, sideDirection)
+
+  if (normalDirection.lengthSq() < 0.000001) {
+    return new THREE.Vector3(0, 0, 1)
+  }
+
+  return normalDirection.normalize()
 }

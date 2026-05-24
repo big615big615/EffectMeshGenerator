@@ -8,6 +8,45 @@ import {
 } from '../generators/effectMeshGenerator'
 import './ControlPanel.css'
 
+const ARC_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 12,
+  widthDivisions: 2,
+  thickness: 0.8,
+  length: 1.5,
+  curve: 1.1,
+  topCurve: 0.3,
+  taper: 0,
+  spread: 0.1,
+  twist: 0,
+  waveCount: 1,
+}
+
+const RISING_SPIRAL_RIBBON_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 32,
+  widthDivisions: 2,
+  thickness: 0.35,
+  length: 5,
+  curve: 1.2,
+  topCurve: 0.2,
+  taper: 0.25,
+  spread: 0.7,
+  twist: 0.4,
+  waveCount: 3,
+}
+
+const CYLINDER_SPIRAL_RIBBON_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 32,
+  widthDivisions: 2,
+  thickness: 0.35,
+  length: 5,
+  curve: 1,
+  topCurve: 0,
+  taper: 0,
+  spread: 0,
+  twist: 0,
+  waveCount: 3,
+}
+
 interface ControlPanelProps {
   meshType: EffectMeshType
   setMeshType: (value: EffectMeshType) => void
@@ -22,6 +61,8 @@ interface ControlPanelProps {
   setUVRotation: (value: number) => void
   mirrorZ: boolean
   setMirrorZ: (value: boolean) => void
+  showPolygonCount: boolean
+  setShowPolygonCount: (value: boolean) => void
   showPivot: boolean
   setShowPivot: (value: boolean) => void
   pivot: {
@@ -52,6 +93,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   setUVRotation,
   mirrorZ,
   setMirrorZ,
+  showPolygonCount,
+  setShowPolygonCount,
   showPivot,
   setShowPivot,
   pivot,
@@ -78,6 +121,24 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const handleMeshTypeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const nextMeshType = event.target.value as EffectMeshType
     setMeshType(nextMeshType)
+
+    if (nextMeshType === 'arc') {
+      setParams(ARC_DEFAULT_PARAMS)
+      setMirrorZ(true)
+      return
+    }
+
+    if (nextMeshType === 'risingSpiralRibbon') {
+      setParams(RISING_SPIRAL_RIBBON_DEFAULT_PARAMS)
+      setMirrorZ(false)
+      return
+    }
+
+    if (nextMeshType === 'cylinderSpiralRibbon') {
+      setParams(CYLINDER_SPIRAL_RIBBON_DEFAULT_PARAMS)
+      setMirrorZ(false)
+      return
+    }
 
     if (nextMeshType !== 'openCylinder' && params.divisions < 3) {
       setParams({ ...params, divisions: 3 })
@@ -240,7 +301,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           id="divisions"
           type="range"
           min={meshType === 'openCylinder' ? '1' : '3'}
-          max="32"
+          max="64"
           value={params.divisions}
           onChange={(e) => handleChange('divisions', parseInt(e.target.value))}
         />
@@ -344,6 +405,34 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         <span className="value">{params.spread.toFixed(2)}</span>
       </div>
 
+      <div className="control-group">
+        <label htmlFor="twist">Twist</label>
+        <input
+          id="twist"
+          type="range"
+          min="-2"
+          max="2"
+          step="0.1"
+          value={params.twist}
+          onChange={(e) => handleChange('twist', parseFloat(e.target.value))}
+        />
+        <span className="value">{params.twist.toFixed(1)}</span>
+      </div>
+
+      <div className="control-group">
+        <label htmlFor="waveCount">Wave Count</label>
+        <input
+          id="waveCount"
+          type="range"
+          min="1"
+          max="8"
+          step="0.25"
+          value={params.waveCount}
+          onChange={(e) => handleChange('waveCount', parseFloat(e.target.value))}
+        />
+        <span className="value">{params.waveCount.toFixed(2)}</span>
+      </div>
+
       <div className="control-group toggle-row">
         <span>ワイヤーフレーム</span>
         <button
@@ -385,6 +474,18 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           onClick={() => setMirrorZ(!mirrorZ)}
         >
           {mirrorZ ? 'ON' : 'OFF'}
+        </button>
+      </div>
+
+      <div className="control-group toggle-row">
+        <span>Polygon Count</span>
+        <button
+          type="button"
+          className={`toggle-btn ${showPolygonCount ? 'active' : ''}`}
+          onClick={() => setShowPolygonCount(!showPolygonCount)}
+          disabled={!mesh}
+        >
+          {showPolygonCount ? 'ON' : 'SHOW'}
         </button>
       </div>
 

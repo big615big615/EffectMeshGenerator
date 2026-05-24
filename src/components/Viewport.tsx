@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import {
@@ -10,6 +10,10 @@ import './Viewport.css'
 
 const UV_VIEW_PADDING = 1.08
 const SLASH_UV_ROTATION_OFFSET = 270
+const FRONT_SURFACE_COLOR = 0x00ff88
+const FRONT_SURFACE_EMISSIVE = 0x00aa44
+const BACK_SURFACE_COLOR = 0xff4f8b
+const BACK_SURFACE_EMISSIVE = 0x66152d
 
 interface ViewportProps {
   meshType: EffectMeshType
@@ -18,6 +22,7 @@ interface ViewportProps {
   showUV: boolean
   uvRotation: number
   mirrorZ: boolean
+  showPolygonCount: boolean
   showPivot: boolean
   pivot: {
     x: number
@@ -39,15 +44,18 @@ const Viewport: React.FC<ViewportProps> = ({
   showUV,
   uvRotation,
   mirrorZ,
+  showPolygonCount,
   showPivot,
   pivot,
   scale,
   onMeshReady,
 }) => {
+  const [polygonCount, setPolygonCount] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   const meshRef = useRef<THREE.Mesh | null>(null)
+  const backMeshRef = useRef<THREE.Mesh | null>(null)
   const meshWireframeRef = useRef<THREE.Group | null>(null)
   const pivotMarkerRef = useRef<THREE.Group | null>(null)
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
@@ -93,26 +101,22 @@ const Viewport: React.FC<ViewportProps> = ({
 
     // Initial mesh
     const geometry = createEffectGeometry(meshType, params, uvRotation, mirrorZ, pivot)
+    setPolygonCount(getGeometryPolygonCount(geometry))
     const checkerTexture = createCheckerTexture(8, 8)
     checkerTextureRef.current = checkerTexture
-    const material = new THREE.MeshPhongMaterial({
-      color: 0x00ff88,
-      emissive: 0x00aa44,
-      wireframe: false,
-      map: showUV ? checkerTexture : null,
-      side: THREE.DoubleSide,
-      polygonOffset: wireframe,
-      polygonOffsetFactor: 1,
-      polygonOffsetUnits: 1,
-    })
-    const mesh = new THREE.Mesh(geometry, material)
+    const frontMaterial = createSurfaceMaterial(THREE.FrontSide, true, showUV ? checkerTexture : null)
+    const backMaterial = createSurfaceMaterial(THREE.BackSide, false, showUV ? checkerTexture : null)
+    const mesh = new THREE.Mesh(geometry, frontMaterial)
     mesh.position.set(pivot.x, pivot.y, pivot.z)
     mesh.scale.set(scale.x, scale.y, scale.z)
+    const backMesh = new THREE.Mesh(geometry, backMaterial)
+    mesh.add(backMesh)
     const meshWireframe = createMeshWireframe(geometry)
     meshWireframe.visible = wireframe
     mesh.add(meshWireframe)
     scene.add(mesh)
     meshRef.current = mesh
+    backMeshRef.current = backMesh
     meshWireframeRef.current = meshWireframe
 
     const pivotMarker = createPivotMarker()
@@ -229,7 +233,8 @@ const Viewport: React.FC<ViewportProps> = ({
       if (pivotMarkerRef.current) {
         disposePivotMarker(pivotMarkerRef.current)
       }
-      material.dispose()
+      frontMaterial.dispose()
+      backMaterial.dispose()
       renderer.dispose()
     }
   }, [])
@@ -240,7 +245,11 @@ const Viewport: React.FC<ViewportProps> = ({
 
     const oldGeometry = meshRef.current.geometry
     const newGeometry = createEffectGeometry(meshType, params, uvRotation, mirrorZ, pivot)
+    setPolygonCount(getGeometryPolygonCount(newGeometry))
     meshRef.current.geometry = newGeometry
+    if (backMeshRef.current) {
+      backMeshRef.current.geometry = newGeometry
+    }
     meshRef.current.position.set(pivot.x, pivot.y, pivot.z)
     if (meshWireframeRef.current) {
       meshRef.current.remove(meshWireframeRef.current)
@@ -285,20 +294,30 @@ const Viewport: React.FC<ViewportProps> = ({
     const texture = checkerTextureRef.current ?? createCheckerTexture(8, 8)
     checkerTextureRef.current = texture
 
-    const material = meshRef.current.material
-    const updateMaterial = (mat: THREE.Material) => {
+    const frontMaterial = meshRef.current.material
+    const backMaterial = backMeshRef.current?.material
+    const updateMaterial = (mat: THREE.Material, isFrontSurface: boolean) => {
       if (mat instanceof THREE.MeshPhongMaterial) {
         mat.wireframe = false
         mat.map = showUV ? texture : null
+        applySurfaceAppearance(mat, isFrontSurface, showUV)
         mat.polygonOffset = wireframe
         mat.needsUpdate = true
       }
     }
 
-    if (Array.isArray(material)) {
-      material.forEach(updateMaterial)
+    if (Array.isArray(frontMaterial)) {
+      frontMaterial.forEach((mat) => updateMaterial(mat, true))
     } else {
-      updateMaterial(material)
+      updateMaterial(frontMaterial, true)
+    }
+
+    if (backMaterial) {
+      if (Array.isArray(backMaterial)) {
+        backMaterial.forEach((mat) => updateMaterial(mat, false))
+      } else {
+        updateMaterial(backMaterial, false)
+      }
     }
 
     if (meshWireframeRef.current) {
@@ -308,6 +327,9 @@ const Viewport: React.FC<ViewportProps> = ({
 
   const createCheckerTexture = (columns: number, rows: number): THREE.Texture => {
     const size = 512
+    const totalCells = columns * rows
+    const startHue = 0
+    const endHue = 280
     const canvas = document.createElement('canvas')
     canvas.width = size
     canvas.height = size
@@ -321,15 +343,19 @@ const Viewport: React.FC<ViewportProps> = ({
 
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < columns; x++) {
-        const isEven = (x + y) % 2 === 0
-        ctx.fillStyle = isEven ? '#ddd' : '#666'
+        const index = y * columns + x + 1
+        const hue = startHue + ((endHue - startHue) * (index - 1)) / Math.max(totalCells - 1, 1)
+        const lightness = (x + y) % 2 === 0 ? 55 : 42
+        ctx.fillStyle = `hsl(${hue}, 92%, ${lightness}%)`
         ctx.fillRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight)
 
-        const index = y * columns + x + 1
-        ctx.fillStyle = isEven ? '#222' : '#eee'
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.75)'
+        ctx.lineWidth = Math.max(3, cellHeight * 0.07)
+        ctx.fillStyle = '#fff'
         ctx.font = `${Math.floor(cellHeight * 0.36)}px sans-serif`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
+        ctx.strokeText(`${index}`, x * cellWidth + cellWidth / 2, y * cellHeight + cellHeight / 2)
         ctx.fillText(`${index}`, x * cellWidth + cellWidth / 2, y * cellHeight + cellHeight / 2)
       }
     }
@@ -342,6 +368,44 @@ const Viewport: React.FC<ViewportProps> = ({
     texture.wrapT = THREE.ClampToEdgeWrapping
     texture.needsUpdate = true
     return texture
+  }
+
+  const createSurfaceMaterial = (
+    side: THREE.Side,
+    isFrontSurface: boolean,
+    map: THREE.Texture | null
+  ): THREE.MeshPhongMaterial => {
+    const material = new THREE.MeshPhongMaterial({
+      wireframe: false,
+      map,
+      side,
+      polygonOffset: wireframe,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1,
+    })
+    applySurfaceAppearance(material, isFrontSurface, map !== null)
+    return material
+  }
+
+  const applySurfaceAppearance = (
+    material: THREE.MeshPhongMaterial,
+    isFrontSurface: boolean,
+    useTextureColor: boolean
+  ) => {
+    material.color.setHex(
+      useTextureColor
+        ? 0xffffff
+        : isFrontSurface
+          ? FRONT_SURFACE_COLOR
+          : BACK_SURFACE_COLOR
+    )
+    material.emissive.setHex(
+      useTextureColor
+        ? 0x000000
+        : isFrontSurface
+          ? FRONT_SURFACE_EMISSIVE
+          : BACK_SURFACE_EMISSIVE
+    )
   }
 
   const createEffectGeometry = (
@@ -362,6 +426,12 @@ const Viewport: React.FC<ViewportProps> = ({
     }
 
     return geometry
+  }
+
+  const getGeometryPolygonCount = (geometry: THREE.BufferGeometry): number => {
+    return geometry.index
+      ? Math.floor(geometry.index.count / 3)
+      : Math.floor((geometry.getAttribute('position')?.count ?? 0) / 3)
   }
 
   const createZMirroredGeometry = (sourceGeometry: THREE.BufferGeometry): THREE.BufferGeometry => {
@@ -652,7 +722,15 @@ const Viewport: React.FC<ViewportProps> = ({
     })
   }
 
-  return <div ref={containerRef} className="viewport" />
+  return (
+    <div ref={containerRef} className="viewport">
+      {showPolygonCount && (
+        <div className={`polygon-count-overlay ${showUV ? 'uv-visible' : ''}`}>
+          {polygonCount.toLocaleString()} tris
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default Viewport
