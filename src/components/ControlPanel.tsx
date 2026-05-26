@@ -8,6 +8,38 @@ import {
 } from '../generators/effectMeshGenerator'
 import './ControlPanel.css'
 
+const SLASH_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 12,
+  widthDivisions: 2,
+  thickness: 0.5,
+  length: 3,
+  curve: 0.8,
+  topCurve: 0.2,
+  taper: 0.35,
+  spread: 0,
+  twist: 0,
+  waveCount: 1,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
+}
+
+const RIBBON_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 24,
+  widthDivisions: 2,
+  thickness: 0.35,
+  length: 4,
+  curve: 0.8,
+  topCurve: 0.2,
+  taper: 0.15,
+  spread: 0,
+  twist: 0,
+  waveCount: 1,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
+}
+
 const ARC_DEFAULT_PARAMS: EffectMeshParams = {
   divisions: 12,
   widthDivisions: 2,
@@ -19,6 +51,25 @@ const ARC_DEFAULT_PARAMS: EffectMeshParams = {
   spread: 0.1,
   twist: 0,
   waveCount: 1,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
+}
+
+const SPIRAL_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 32,
+  widthDivisions: 2,
+  thickness: 0.3,
+  length: 3,
+  curve: 1.2,
+  topCurve: 0.2,
+  taper: 0.25,
+  spread: 0,
+  twist: 0,
+  waveCount: 1,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
 }
 
 const RISING_SPIRAL_RIBBON_DEFAULT_PARAMS: EffectMeshParams = {
@@ -32,6 +83,9 @@ const RISING_SPIRAL_RIBBON_DEFAULT_PARAMS: EffectMeshParams = {
   spread: 0.7,
   twist: 0.4,
   waveCount: 3,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
 }
 
 const CYLINDER_SPIRAL_RIBBON_DEFAULT_PARAMS: EffectMeshParams = {
@@ -45,6 +99,154 @@ const CYLINDER_SPIRAL_RIBBON_DEFAULT_PARAMS: EffectMeshParams = {
   spread: 0,
   twist: 0,
   waveCount: 3,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
+}
+
+const LIGHTNING_RIBBON_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 24,
+  widthDivisions: 1,
+  thickness: 0.22,
+  length: 5,
+  curve: 1.4,
+  topCurve: 0,
+  taper: 0.75,
+  spread: 0.25,
+  twist: 0,
+  waveCount: 5,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
+}
+
+const BURST_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 16,
+  widthDivisions: 8,
+  thickness: 0.5,
+  length: 3,
+  curve: 1,
+  topCurve: 0.2,
+  taper: 0.4,
+  spread: 0,
+  twist: 0,
+  waveCount: 1,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
+}
+
+const PLANE_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 1,
+  widthDivisions: 1,
+  thickness: 2,
+  length: 2,
+  curve: 0,
+  topCurve: 0,
+  taper: 0,
+  spread: 0,
+  twist: 0,
+  waveCount: 1,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
+}
+
+const FLAT_RING_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 32,
+  widthDivisions: 1,
+  thickness: 0.5,
+  length: 3,
+  curve: 0,
+  topCurve: 0,
+  taper: 0,
+  spread: 0,
+  twist: 0,
+  waveCount: 1,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
+}
+
+const SPHERE_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 16,
+  widthDivisions: 4,
+  thickness: 1,
+  length: 2,
+  curve: 0,
+  topCurve: 0,
+  taper: 0,
+  spread: 0,
+  twist: 0,
+  waveCount: 1,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
+}
+
+const HEMISPHERE_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 12,
+  widthDivisions: 4,
+  thickness: 1,
+  length: 2,
+  curve: 0,
+  topCurve: 0,
+  taper: 0,
+  spread: 0,
+  twist: 0,
+  waveCount: 1,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
+}
+
+const Z_HEMISPHERE_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 12,
+  widthDivisions: 4,
+  thickness: 1,
+  length: 2,
+  curve: 0,
+  topCurve: 0,
+  taper: 0,
+  spread: 0,
+  twist: 0,
+  waveCount: 1,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
+}
+
+const OPEN_CYLINDER_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 8,
+  widthDivisions: 8,
+  thickness: 1,
+  length: 3,
+  curve: 0,
+  topCurve: 0,
+  taper: 0,
+  spread: 0,
+  twist: 0,
+  waveCount: 1,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
+}
+
+const BEAM_DOME_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 24,
+  widthDivisions: 8,
+  thickness: 1,
+  length: 4,
+  curve: 0,
+  topCurve: 0,
+  taper: 0,
+  spread: 0,
+  twist: 0,
+  waveCount: 1,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
+  cylinderDivisions: 2,
 }
 
 interface ControlPanelProps {
@@ -122,9 +324,33 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     const nextMeshType = event.target.value as EffectMeshType
     setMeshType(nextMeshType)
 
+    if (nextMeshType === 'slash') {
+      setParams(SLASH_DEFAULT_PARAMS)
+      setMirrorZ(false)
+      return
+    }
+
+    if (nextMeshType === 'ribbon') {
+      setParams(RIBBON_DEFAULT_PARAMS)
+      setMirrorZ(false)
+      return
+    }
+
     if (nextMeshType === 'arc') {
       setParams(ARC_DEFAULT_PARAMS)
       setMirrorZ(true)
+      return
+    }
+
+    if (nextMeshType === 'lightningRibbon') {
+      setParams(LIGHTNING_RIBBON_DEFAULT_PARAMS)
+      setMirrorZ(false)
+      return
+    }
+
+    if (nextMeshType === 'spiral') {
+      setParams(SPIRAL_DEFAULT_PARAMS)
+      setMirrorZ(false)
       return
     }
 
@@ -140,8 +366,51 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       return
     }
 
-    if (nextMeshType !== 'openCylinder' && params.divisions < 3) {
-      setParams({ ...params, divisions: 3 })
+    if (nextMeshType === 'burst') {
+      setParams(BURST_DEFAULT_PARAMS)
+      setMirrorZ(false)
+      return
+    }
+
+    if (nextMeshType === 'plane') {
+      setParams(PLANE_DEFAULT_PARAMS)
+      setMirrorZ(false)
+      return
+    }
+
+    if (nextMeshType === 'flatRing') {
+      setParams(FLAT_RING_DEFAULT_PARAMS)
+      setMirrorZ(false)
+      return
+    }
+
+    if (nextMeshType === 'sphere') {
+      setParams(SPHERE_DEFAULT_PARAMS)
+      setMirrorZ(false)
+      return
+    }
+
+    if (nextMeshType === 'hemisphere') {
+      setParams(HEMISPHERE_DEFAULT_PARAMS)
+      setMirrorZ(false)
+      return
+    }
+
+    if (nextMeshType === 'zHemisphere') {
+      setParams(Z_HEMISPHERE_DEFAULT_PARAMS)
+      setMirrorZ(false)
+      return
+    }
+
+    if (nextMeshType === 'openCylinder') {
+      setParams(OPEN_CYLINDER_DEFAULT_PARAMS)
+      setMirrorZ(false)
+      return
+    }
+
+    if (nextMeshType === 'beamDome') {
+      setParams(BEAM_DOME_DEFAULT_PARAMS)
+      setMirrorZ(false)
     }
   }
 
@@ -300,7 +569,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         <input
           id="divisions"
           type="range"
-          min={meshType === 'openCylinder' ? '1' : '3'}
+          min={meshType === 'openCylinder' || meshType === 'plane' ? '1' : '3'}
           max="64"
           value={params.divisions}
           onChange={(e) => handleChange('divisions', parseInt(e.target.value))}
@@ -432,6 +701,70 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         />
         <span className="value">{params.waveCount.toFixed(2)}</span>
       </div>
+
+      {meshType === 'lightningRibbon' && (
+        <div className="control-group">
+          <label htmlFor="seed">Seed</label>
+          <input
+            id="seed"
+            type="range"
+            min="0"
+            max="999"
+            step="1"
+            value={params.seed}
+            onChange={(e) => handleChange('seed', parseInt(e.target.value))}
+          />
+          <span className="value">{params.seed}</span>
+        </div>
+      )}
+
+      {meshType === 'beamDome' && (
+        <>
+          <div className="control-group">
+            <label htmlFor="cylinderDivisions">Cylinder Divisions</label>
+            <input
+              id="cylinderDivisions"
+              type="range"
+              min="1"
+              max="64"
+              step="1"
+              value={params.cylinderDivisions ?? 2}
+              onChange={(e) => handleChange('cylinderDivisions', parseInt(e.target.value))}
+            />
+            <span className="value">{params.cylinderDivisions ?? 2}</span>
+          </div>
+
+          <div className="control-group">
+            <label htmlFor="cylinderScale">Cylinder Scale</label>
+            <input
+              id="cylinderScale"
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={params.cylinderScale}
+              onChange={(e) => handleChange('cylinderScale', parseFloat(e.target.value))}
+            />
+            <span className="value">{params.cylinderScale.toFixed(2)}</span>
+          </div>
+        </>
+      )}
+
+      {(meshType === 'sphere' || meshType === 'zHemisphere') && (
+        <div className="control-group">
+          <label htmlFor="yClip">Y Clip</label>
+          <input
+            id="yClip"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={params.yClip}
+            onChange={(e) => handleChange('yClip', parseFloat(e.target.value))}
+          />
+          <span className="value">{params.yClip.toFixed(2)}</span>
+        </div>
+      )}
 
       <div className="control-group toggle-row">
         <span>ワイヤーフレーム</span>

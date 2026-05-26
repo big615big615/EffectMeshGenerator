@@ -30,6 +30,9 @@ const App: React.FC = () => {
     spread: 0,
     twist: 0,
     waveCount: 1,
+    seed: 0,
+    yClip: 0,
+    cylinderScale: 1,
   })
   const [wireframe, setWireframe] = useState(false)
   const [showUV, setShowUV] = useState(false)
