@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import * as THREE from 'three'
 import Viewport from './components/Viewport'
 import ControlPanel from './components/ControlPanel'
@@ -15,6 +15,11 @@ interface ScaleParams {
   x: number
   y: number
   z: number
+}
+
+interface TexturePreview {
+  url: string
+  name: string
 }
 
 const App: React.FC = () => {
@@ -36,6 +41,7 @@ const App: React.FC = () => {
   })
   const [wireframe, setWireframe] = useState(false)
   const [showUV, setShowUV] = useState(false)
+  const [showTextureIn3D, setShowTextureIn3D] = useState(false)
   const [uvRotation, setUVRotation] = useState(0)
   const [mirrorZ, setMirrorZ] = useState(false)
   const [showPolygonCount, setShowPolygonCount] = useState(false)
@@ -43,6 +49,24 @@ const App: React.FC = () => {
   const [pivot, setPivot] = useState<PivotParams>({ x: 0, y: 0, z: 0 })
   const [scale, setScale] = useState<ScaleParams>({ x: 1, y: 1, z: 1 })
   const [currentMesh, setCurrentMesh] = useState<THREE.Mesh | undefined>(undefined)
+  const [texturePreview, setTexturePreview] = useState<TexturePreview | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (texturePreview) {
+        URL.revokeObjectURL(texturePreview.url)
+      }
+    }
+  }, [texturePreview])
+
+  const handleTextureFileSelect = (file: File) => {
+    setTexturePreview({
+      url: URL.createObjectURL(file),
+      name: file.name,
+    })
+    setShowTextureIn3D(true)
+    setShowUV(true)
+  }
 
   return (
     <div className="app-container">
@@ -52,12 +76,14 @@ const App: React.FC = () => {
           params={params}
           wireframe={wireframe}
           showUV={showUV}
+          showTextureIn3D={showTextureIn3D}
           uvRotation={uvRotation}
           mirrorZ={mirrorZ}
           showPolygonCount={showPolygonCount}
           showPivot={showPivot}
           pivot={pivot}
           scale={scale}
+          textureSource={texturePreview}
           onMeshReady={setCurrentMesh}
         />
       </div>
@@ -72,6 +98,8 @@ const App: React.FC = () => {
           setWireframe={setWireframe}
           showUV={showUV}
           setShowUV={setShowUV}
+          showTextureIn3D={showTextureIn3D}
+          setShowTextureIn3D={setShowTextureIn3D}
           uvRotation={uvRotation}
           setUVRotation={setUVRotation}
           mirrorZ={mirrorZ}
@@ -84,6 +112,9 @@ const App: React.FC = () => {
           setPivot={setPivot}
           scale={scale}
           setScale={setScale}
+          textureName={texturePreview?.name ?? null}
+          onTextureFileSelect={handleTextureFileSelect}
+          onTextureReset={() => setTexturePreview(null)}
         />
       </div>
     </div>

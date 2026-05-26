@@ -15,11 +15,17 @@ const FRONT_SURFACE_EMISSIVE = 0x00aa44
 const BACK_SURFACE_COLOR = 0xff4f8b
 const BACK_SURFACE_EMISSIVE = 0x66152d
 
+interface TextureSource {
+  url: string
+  name: string
+}
+
 interface ViewportProps {
   meshType: EffectMeshType
   params: EffectMeshParams
   wireframe: boolean
   showUV: boolean
+  showTextureIn3D: boolean
   uvRotation: number
   mirrorZ: boolean
   showPolygonCount: boolean
@@ -34,6 +40,7 @@ interface ViewportProps {
     y: number
     z: number
   }
+  textureSource: TextureSource | null
   onMeshReady?: (mesh: THREE.Mesh) => void
 }
 
@@ -42,12 +49,14 @@ const Viewport: React.FC<ViewportProps> = ({
   params,
   wireframe,
   showUV,
+  showTextureIn3D,
   uvRotation,
   mirrorZ,
   showPolygonCount,
   showPivot,
   pivot,
   scale,
+  textureSource,
   onMeshReady,
 }) => {
   const [polygonCount, setPolygonCount] = useState(0)
@@ -62,12 +71,19 @@ const Viewport: React.FC<ViewportProps> = ({
   const uvSceneRef = useRef<THREE.Scene | null>(null)
   const uvCameraRef = useRef<THREE.OrthographicCamera | null>(null)
   const uvWireframeRef = useRef<THREE.Group | null>(null)
+  const uvBackgroundRef = useRef<THREE.Mesh | null>(null)
   const checkerTextureRef = useRef<THREE.Texture | null>(null)
+  const uploadedTextureRef = useRef<THREE.Texture | null>(null)
   const showUVRef = useRef(showUV)
+  const showSurfaceTextureRef = useRef(showUV || showTextureIn3D)
 
   useEffect(() => {
     showUVRef.current = showUV
   }, [showUV])
+
+  useEffect(() => {
+    showSurfaceTextureRef.current = showUV || showTextureIn3D
+  }, [showUV, showTextureIn3D])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -81,7 +97,7 @@ const Viewport: React.FC<ViewportProps> = ({
     const width = containerRef.current.clientWidth
     const height = containerRef.current.clientHeight
     const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000)
-    camera.position.set(0, 0, 5)
+    camera.position.set(3, 1, 3)
     cameraRef.current = camera
 
     // Renderer setup
@@ -104,8 +120,17 @@ const Viewport: React.FC<ViewportProps> = ({
     setPolygonCount(getGeometryPolygonCount(geometry))
     const checkerTexture = createCheckerTexture(8, 8)
     checkerTextureRef.current = checkerTexture
-    const frontMaterial = createSurfaceMaterial(THREE.FrontSide, true, showUV ? checkerTexture : null)
-    const backMaterial = createSurfaceMaterial(THREE.BackSide, false, showUV ? checkerTexture : null)
+    const shouldShowSurfaceTexture = showUV || showTextureIn3D
+    const frontMaterial = createSurfaceMaterial(
+      THREE.FrontSide,
+      true,
+      shouldShowSurfaceTexture ? checkerTexture : null
+    )
+    const backMaterial = createSurfaceMaterial(
+      THREE.BackSide,
+      false,
+      shouldShowSurfaceTexture ? checkerTexture : null
+    )
     const mesh = new THREE.Mesh(geometry, frontMaterial)
     mesh.position.set(pivot.x, pivot.y, pivot.z)
     mesh.scale.set(scale.x, scale.y, scale.z)
@@ -136,6 +161,7 @@ const Viewport: React.FC<ViewportProps> = ({
     uvCameraRef.current = uvCamera
 
     const uvBackground = createUVBackground(checkerTexture)
+    uvBackgroundRef.current = uvBackground
     uvScene.add(uvBackground)
 
     const uvWireframe = createUVWireframe(geometry)
@@ -233,6 +259,11 @@ const Viewport: React.FC<ViewportProps> = ({
       if (pivotMarkerRef.current) {
         disposePivotMarker(pivotMarkerRef.current)
       }
+      if (uvBackgroundRef.current) {
+        disposeUVBackground(uvBackgroundRef.current)
+      }
+      checkerTextureRef.current?.dispose()
+      uploadedTextureRef.current?.dispose()
       frontMaterial.dispose()
       backMaterial.dispose()
       renderer.dispose()
@@ -262,15 +293,11 @@ const Viewport: React.FC<ViewportProps> = ({
     oldGeometry.dispose()
 
     if (uvWireframeRef.current) {
+      uvSceneRef.current?.remove(uvWireframeRef.current)
       disposeWireframeGroup(uvWireframeRef.current)
       const newUVWireframe = createUVWireframe(newGeometry)
       uvWireframeRef.current = newUVWireframe
-      uvSceneRef.current?.clear()
-      if (uvSceneRef.current) {
-        const uvBackground = createUVBackground(checkerTextureRef.current ?? createCheckerTexture(8, 8))
-        uvSceneRef.current.add(uvBackground)
-        uvSceneRef.current.add(newUVWireframe)
-      }
+      uvSceneRef.current?.add(newUVWireframe)
     }
   }, [meshType, params, uvRotation, mirrorZ, pivot])
 
@@ -287,20 +314,63 @@ const Viewport: React.FC<ViewportProps> = ({
     meshRef.current.scale.set(scale.x, scale.y, scale.z)
   }, [scale])
 
-  // Sync wireframe state and checker texture display with the mesh material
+  useEffect(() => {
+    if (!textureSource) {
+      if (uploadedTextureRef.current) {
+        uploadedTextureRef.current.dispose()
+        uploadedTextureRef.current = null
+      }
+
+      applyPreviewTexture(getPreviewTexture())
+      return
+    }
+
+    let cancelled = false
+    const loader = new THREE.TextureLoader()
+    loader.load(
+      textureSource.url,
+      (texture) => {
+        if (cancelled) {
+          texture.dispose()
+          return
+        }
+
+        configurePreviewTexture(texture)
+        uploadedTextureRef.current?.dispose()
+        uploadedTextureRef.current = texture
+        applyPreviewTexture(texture)
+      },
+      undefined,
+      (error) => {
+        console.error('Texture load error:', error)
+        if (!cancelled) {
+          uploadedTextureRef.current?.dispose()
+          uploadedTextureRef.current = null
+          applyPreviewTexture(getPreviewTexture())
+        }
+      }
+    )
+
+    return () => {
+      cancelled = true
+    }
+  }, [textureSource?.url])
+
+  // Sync wireframe state and preview texture display with the mesh material
   useEffect(() => {
     if (!meshRef.current) return
 
-    const texture = checkerTextureRef.current ?? createCheckerTexture(8, 8)
-    checkerTextureRef.current = texture
+    const texture = getPreviewTexture()
+    applyPreviewTexture(texture)
 
     const frontMaterial = meshRef.current.material
     const backMaterial = backMeshRef.current?.material
+    const shouldShowSurfaceTexture = showUV || showTextureIn3D
     const updateMaterial = (mat: THREE.Material, isFrontSurface: boolean) => {
       if (mat instanceof THREE.MeshPhongMaterial) {
         mat.wireframe = false
-        mat.map = showUV ? texture : null
-        applySurfaceAppearance(mat, isFrontSurface, showUV)
+        mat.map = shouldShowSurfaceTexture ? texture : null
+        applySurfaceAppearance(mat, isFrontSurface, shouldShowSurfaceTexture)
         mat.polygonOffset = wireframe
         mat.needsUpdate = true
       }
@@ -323,7 +393,67 @@ const Viewport: React.FC<ViewportProps> = ({
     if (meshWireframeRef.current) {
       meshWireframeRef.current.visible = wireframe
     }
-  }, [wireframe, showUV])
+  }, [wireframe, showUV, showTextureIn3D])
+
+  const configurePreviewTexture = (texture: THREE.Texture) => {
+    texture.flipY = false
+    texture.colorSpace = THREE.SRGBColorSpace
+    texture.magFilter = THREE.LinearFilter
+    texture.minFilter = THREE.LinearFilter
+    texture.wrapS = THREE.ClampToEdgeWrapping
+    texture.wrapT = THREE.ClampToEdgeWrapping
+    texture.needsUpdate = true
+  }
+
+  const getPreviewTexture = (): THREE.Texture => {
+    if (uploadedTextureRef.current) {
+      return uploadedTextureRef.current
+    }
+
+    if (!checkerTextureRef.current) {
+      checkerTextureRef.current = createCheckerTexture(8, 8)
+    }
+
+    return checkerTextureRef.current
+  }
+
+  const applyPreviewTexture = (texture: THREE.Texture) => {
+    if (uvBackgroundRef.current) {
+      const material = uvBackgroundRef.current.material
+
+      if (material instanceof THREE.MeshBasicMaterial) {
+        material.map = texture
+        material.needsUpdate = true
+      }
+    }
+
+    if (!meshRef.current) return
+
+    const updateMaterial = (mat: THREE.Material, isFrontSurface: boolean) => {
+      if (mat instanceof THREE.MeshPhongMaterial) {
+        mat.map = showSurfaceTextureRef.current ? texture : null
+        applySurfaceAppearance(mat, isFrontSurface, showSurfaceTextureRef.current)
+        mat.needsUpdate = true
+      }
+    }
+
+    const frontMaterial = meshRef.current.material
+    const backMaterial = backMeshRef.current?.material
+
+    if (Array.isArray(frontMaterial)) {
+      frontMaterial.forEach((mat) => updateMaterial(mat, true))
+    } else {
+      updateMaterial(frontMaterial, true)
+    }
+
+    if (backMaterial) {
+      if (Array.isArray(backMaterial)) {
+        backMaterial.forEach((mat) => updateMaterial(mat, false))
+      } else {
+        updateMaterial(backMaterial, false)
+      }
+    }
+  }
 
   const createCheckerTexture = (columns: number, rows: number): THREE.Texture => {
     const size = 512
@@ -362,6 +492,7 @@ const Viewport: React.FC<ViewportProps> = ({
 
     const texture = new THREE.CanvasTexture(canvas)
     texture.flipY = false
+    texture.colorSpace = THREE.SRGBColorSpace
     texture.magFilter = THREE.NearestFilter
     texture.minFilter = THREE.NearestFilter
     texture.wrapS = THREE.ClampToEdgeWrapping
@@ -379,6 +510,8 @@ const Viewport: React.FC<ViewportProps> = ({
       wireframe: false,
       map,
       side,
+      transparent: map !== null,
+      alphaTest: map !== null ? 0.001 : 0,
       polygonOffset: wireframe,
       polygonOffsetFactor: 1,
       polygonOffsetUnits: 1,
@@ -406,6 +539,8 @@ const Viewport: React.FC<ViewportProps> = ({
           ? FRONT_SURFACE_EMISSIVE
           : BACK_SURFACE_EMISSIVE
     )
+    material.transparent = useTextureColor
+    material.alphaTest = useTextureColor ? 0.001 : 0
   }
 
   const createEffectGeometry = (
@@ -706,6 +841,16 @@ const Viewport: React.FC<ViewportProps> = ({
         }
       }
     })
+  }
+
+  const disposeUVBackground = (background: THREE.Mesh) => {
+    background.geometry.dispose()
+
+    if (Array.isArray(background.material)) {
+      background.material.forEach((material) => material.dispose())
+    } else {
+      background.material.dispose()
+    }
   }
 
   const disposeWireframeGroup = (wireframeGroup: THREE.Group) => {

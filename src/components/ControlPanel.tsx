@@ -259,6 +259,8 @@ interface ControlPanelProps {
   setWireframe: (value: boolean) => void
   showUV: boolean
   setShowUV: (value: boolean) => void
+  showTextureIn3D: boolean
+  setShowTextureIn3D: (value: boolean) => void
   uvRotation: number
   setUVRotation: (value: number) => void
   mirrorZ: boolean
@@ -279,6 +281,9 @@ interface ControlPanelProps {
     z: number
   }
   setScale: (value: ControlPanelProps['scale']) => void
+  textureName: string | null
+  onTextureFileSelect: (file: File) => void
+  onTextureReset: () => void
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -291,6 +296,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   setWireframe,
   showUV,
   setShowUV,
+  showTextureIn3D,
+  setShowTextureIn3D,
   uvRotation,
   setUVRotation,
   mirrorZ,
@@ -303,8 +310,12 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   setPivot,
   scale,
   setScale,
+  textureName,
+  onTextureFileSelect,
+  onTextureReset,
 }) => {
   const [isExporting, setIsExporting] = useState(false)
+  const textureFileInputRef = useRef<HTMLInputElement | null>(null)
   const pivotDragRef = useRef<{
     key: keyof ControlPanelProps['pivot']
     startX: number
@@ -420,6 +431,22 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
   const handleScaleChange = (key: keyof ControlPanelProps['scale'], value: number) => {
     setScale({ ...scale, [key]: value })
+  }
+
+  const handleTextureInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    onTextureFileSelect(file)
+    event.target.value = ''
+  }
+
+  const handleTextureReset = () => {
+    if (textureFileInputRef.current) {
+      textureFileInputRef.current.value = ''
+    }
+
+    onTextureReset()
   }
 
   const roundPivotValue = (value: number) => Math.round(value * 1000) / 1000
@@ -786,6 +813,49 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         >
           {showUV ? 'ON' : 'OFF'}
         </button>
+      </div>
+
+      <div className="control-group toggle-row">
+        <span>3D Texture</span>
+        <button
+          type="button"
+          className={`toggle-btn ${showTextureIn3D ? 'active' : ''}`}
+          onClick={() => setShowTextureIn3D(!showTextureIn3D)}
+        >
+          {showTextureIn3D ? 'ON' : 'OFF'}
+        </button>
+      </div>
+
+      <div className="control-group texture-control">
+        <label htmlFor="textureFile">Texture</label>
+        <input
+          ref={textureFileInputRef}
+          id="textureFile"
+          className="texture-file-input"
+          type="file"
+          accept="image/*"
+          onChange={handleTextureInputChange}
+        />
+        <div className="texture-actions">
+          <button
+            type="button"
+            className="texture-btn"
+            onClick={() => textureFileInputRef.current?.click()}
+          >
+            Choose Image
+          </button>
+          <button
+            type="button"
+            className="texture-btn"
+            onClick={handleTextureReset}
+            disabled={!textureName}
+          >
+            Checker
+          </button>
+        </div>
+        <div className="texture-name" title={textureName ?? 'Checker'}>
+          {textureName ?? 'Checker'}
+        </div>
       </div>
 
       <div className="control-group toggle-row">

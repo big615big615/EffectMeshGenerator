@@ -157,6 +157,51 @@
   border-color: #00ff88;
 }
 
+.texture-control {
+  padding: 12px 0;
+  border-top: 1px solid #333;
+  border-bottom: 1px solid #333;
+}
+
+.texture-file-input {
+  display: none;
+}
+
+.texture-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.texture-btn {
+  background: #181818;
+  color: #00ff88;
+  border: 1px solid #00ff88;
+  border-radius: 4px;
+  padding: 9px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.texture-btn:hover {
+  background: rgba(0, 255, 136, 0.1);
+}
+
+.texture-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.texture-name {
+  overflow: hidden;
+  color: #cfcfcf;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .export-btn {
   background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
   color: #000;
