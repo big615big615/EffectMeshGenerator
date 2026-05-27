@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import Viewport from './components/Viewport'
 import ControlPanel from './components/ControlPanel'
 import type { EffectMeshParams, EffectMeshType } from './generators/effectMeshGenerator'
+import type { Language } from './i18n'
 import './App.css'
 
 interface PivotParams {
@@ -12,6 +13,12 @@ interface PivotParams {
 }
 
 interface ScaleParams {
+  x: number
+  y: number
+  z: number
+}
+
+interface RotationParams {
   x: number
   y: number
   z: number
@@ -50,8 +57,14 @@ const App: React.FC = () => {
   const [showPivot, setShowPivot] = useState(false)
   const [pivot, setPivot] = useState<PivotParams>({ x: 0, y: 0, z: 0 })
   const [scale, setScale] = useState<ScaleParams>({ x: 1, y: 1, z: 1 })
+  const [rotation, setRotation] = useState<RotationParams>({ x: 0, y: 0, z: 0 })
   const [currentMesh, setCurrentMesh] = useState<THREE.Mesh | undefined>(undefined)
   const [texturePreview, setTexturePreview] = useState<TexturePreview | null>(null)
+  const [language, setLanguage] = useState<Language>('ja')
+
+  useEffect(() => {
+    document.documentElement.lang = language
+  }, [language])
 
   useEffect(() => {
     return () => {
@@ -87,7 +100,9 @@ const App: React.FC = () => {
           showPivot={showPivot}
           pivot={pivot}
           scale={scale}
+          rotation={rotation}
           textureSource={texturePreview}
+          language={language}
           onMeshReady={setCurrentMesh}
         />
       </div>
@@ -119,9 +134,13 @@ const App: React.FC = () => {
           setPivot={setPivot}
           scale={scale}
           setScale={setScale}
+          rotation={rotation}
+          setRotation={setRotation}
           textureName={texturePreview?.name ?? null}
           onTextureFileSelect={handleTextureFileSelect}
           onTextureReset={() => setTexturePreview(null)}
+          language={language}
+          setLanguage={setLanguage}
         />
       </div>
     </div>

@@ -6,6 +6,7 @@ import {
   type EffectMeshParams,
   type EffectMeshType,
 } from '../generators/effectMeshGenerator'
+import { uiText, type Language } from '../i18n'
 import './Viewport.css'
 
 const UV_VIEW_PADDING = 1.08
@@ -43,7 +44,13 @@ interface ViewportProps {
     y: number
     z: number
   }
+  rotation: {
+    x: number
+    y: number
+    z: number
+  }
   textureSource: TextureSource | null
+  language: Language
   onMeshReady?: (mesh: THREE.Mesh) => void
 }
 
@@ -61,10 +68,13 @@ const Viewport: React.FC<ViewportProps> = ({
   showPivot,
   pivot,
   scale,
+  rotation,
   textureSource,
+  language,
   onMeshReady,
 }) => {
   const [polygonCount, setPolygonCount] = useState(0)
+  const t = uiText[language]
   const containerRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
@@ -147,6 +157,11 @@ const Viewport: React.FC<ViewportProps> = ({
     )
     const mesh = new THREE.Mesh(geometry, frontMaterial)
     mesh.position.set(pivot.x, pivot.y, pivot.z)
+    mesh.rotation.set(
+      THREE.MathUtils.degToRad(rotation.x),
+      THREE.MathUtils.degToRad(rotation.y),
+      THREE.MathUtils.degToRad(rotation.z)
+    )
     mesh.scale.set(scale.x, scale.y, scale.z)
     const backMesh = new THREE.Mesh(geometry, backMaterial)
     mesh.add(backMesh)
@@ -336,6 +351,16 @@ const Viewport: React.FC<ViewportProps> = ({
 
     meshRef.current.scale.set(scale.x, scale.y, scale.z)
   }, [scale])
+
+  useEffect(() => {
+    if (!meshRef.current) return
+
+    meshRef.current.rotation.set(
+      THREE.MathUtils.degToRad(rotation.x),
+      THREE.MathUtils.degToRad(rotation.y),
+      THREE.MathUtils.degToRad(rotation.z)
+    )
+  }, [rotation])
 
   useEffect(() => {
     if (!textureSource) {
@@ -589,14 +614,15 @@ const Viewport: React.FC<ViewportProps> = ({
   ): THREE.BufferGeometry => {
     const geometry = generateEffectMesh(selectedMeshType, meshParams)
     applyUVRotation(geometry, rotation + SLASH_UV_ROTATION_OFFSET)
-    geometry.translate(-pivotPosition.x, -pivotPosition.y, -pivotPosition.z)
 
     if (shouldMirrorZ) {
       const mirroredGeometry = createZMirroredGeometry(geometry)
       geometry.dispose()
+      mirroredGeometry.translate(-pivotPosition.x, -pivotPosition.y, -pivotPosition.z)
       return mirroredGeometry
     }
 
+    geometry.translate(-pivotPosition.x, -pivotPosition.y, -pivotPosition.z)
     return geometry
   }
 
@@ -908,7 +934,7 @@ const Viewport: React.FC<ViewportProps> = ({
     <div ref={containerRef} className="viewport">
       {showPolygonCount && (
         <div className={`polygon-count-overlay ${showUV ? 'uv-visible' : ''}`}>
-          {polygonCount.toLocaleString()} tris
+          {polygonCount.toLocaleString()} {t.triangles}
         </div>
       )}
     </div>

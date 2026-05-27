@@ -1,11 +1,8 @@
 import React, { useRef, useState } from 'react'
 import * as THREE from 'three'
 import * as meshExporter from '../exporters/meshExporter'
-import {
-  EFFECT_MESH_TYPE_OPTIONS,
-  type EffectMeshParams,
-  type EffectMeshType,
-} from '../generators/effectMeshGenerator'
+import type { EffectMeshParams, EffectMeshType } from '../generators/effectMeshGenerator'
+import { uiText, type Language } from '../i18n'
 import './ControlPanel.css'
 
 const SLASH_DEFAULT_PARAMS: EffectMeshParams = {
@@ -249,6 +246,22 @@ const BEAM_DOME_DEFAULT_PARAMS: EffectMeshParams = {
   cylinderDivisions: 2,
 }
 
+const MESH_TYPE_OPTION_VALUES: ReadonlyArray<EffectMeshType> = [
+  'slash',
+  'ribbon',
+  'lightningRibbon',
+  'arc',
+  'risingSpiralRibbon',
+  'cylinderSpiralRibbon',
+  'plane',
+  'flatRing',
+  'sphere',
+  'hemisphere',
+  'zHemisphere',
+  'openCylinder',
+  'beamDome',
+]
+
 interface ControlPanelProps {
   meshType: EffectMeshType
   setMeshType: (value: EffectMeshType) => void
@@ -284,9 +297,17 @@ interface ControlPanelProps {
     z: number
   }
   setScale: (value: ControlPanelProps['scale']) => void
+  rotation: {
+    x: number
+    y: number
+    z: number
+  }
+  setRotation: (value: ControlPanelProps['rotation']) => void
   textureName: string | null
   onTextureFileSelect: (file: File) => void
   onTextureReset: () => void
+  language: Language
+  setLanguage: (value: Language) => void
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -316,11 +337,16 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   setPivot,
   scale,
   setScale,
+  rotation,
+  setRotation,
   textureName,
   onTextureFileSelect,
   onTextureReset,
+  language,
+  setLanguage,
 }) => {
   const [isExporting, setIsExporting] = useState(false)
+  const t = uiText[language]
   const textureFileInputRef = useRef<HTMLInputElement | null>(null)
   const pivotDragRef = useRef<{
     key: keyof ControlPanelProps['pivot']
@@ -329,6 +355,11 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   } | null>(null)
   const scaleDragRef = useRef<{
     key: keyof ControlPanelProps['scale']
+    startX: number
+    startValue: number
+  } | null>(null)
+  const rotationDragRef = useRef<{
+    key: keyof ControlPanelProps['rotation']
     startX: number
     startValue: number
   } | null>(null)
@@ -439,6 +470,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     setScale({ ...scale, [key]: value })
   }
 
+  const handleRotationChange = (key: keyof ControlPanelProps['rotation'], value: number) => {
+    setRotation({ ...rotation, [key]: value })
+  }
+
   const handleTextureInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -457,9 +492,14 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
   const roundPivotValue = (value: number) => Math.round(value * 1000) / 1000
   const roundScaleValue = (value: number) => Math.round(value * 1000) / 1000
+  const roundRotationValue = (value: number) => Math.round(value * 1000) / 1000
   const parseScaleInput = (value: string) => {
     const parsedValue = parseFloat(value)
     return Number.isFinite(parsedValue) ? parsedValue : 1
+  }
+  const parseRotationInput = (value: string) => {
+    const parsedValue = parseFloat(value)
+    return Number.isFinite(parsedValue) ? parsedValue : 0
   }
 
   const handlePivotDragStart = (
@@ -493,6 +533,47 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
     const handlePointerUp = () => {
       pivotDragRef.current = null
+      document.body.style.cursor = previousCursor
+      document.body.style.userSelect = previousUserSelect
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+  }
+
+  const handleRotationDragStart = (
+    event: React.PointerEvent<HTMLInputElement>,
+    key: keyof ControlPanelProps['rotation']
+  ) => {
+    if (event.button !== 0) return
+
+    rotationDragRef.current = {
+      key,
+      startX: event.clientX,
+      startValue: rotation[key],
+    }
+
+    const previousCursor = document.body.style.cursor
+    const previousUserSelect = document.body.style.userSelect
+    document.body.style.cursor = 'ew-resize'
+    document.body.style.userSelect = 'none'
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const drag = rotationDragRef.current
+      if (!drag) return
+
+      const deltaX = moveEvent.clientX - drag.startX
+      if (Math.abs(deltaX) < 2) return
+
+      moveEvent.preventDefault()
+      const sensitivity = moveEvent.altKey ? 0.01 : moveEvent.shiftKey ? 0.1 : 0.5
+      handleRotationChange(drag.key, roundRotationValue(drag.startValue + deltaX * sensitivity))
+    }
+
+    const handlePointerUp = () => {
+      rotationDragRef.current = null
       document.body.style.cursor = previousCursor
       document.body.style.userSelect = previousUserSelect
       window.removeEventListener('pointermove', handlePointerMove)
@@ -546,7 +627,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
   const handleExport = async (format: 'fbx' | 'glb' | 'gltf' | 'obj') => {
     if (!mesh) {
-      alert('メッシュの生成待機中です')
+      alert(t.exportWaiting)
       return
     }
 
@@ -566,12 +647,14 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           await meshExporter.exportAsGLTF(mesh, fileName)
           break
         case 'obj':
-          await meshExporter.exportAsOBJ(mesh, fileName)
+          await meshExporter.exportAsOBJ(mesh, fileName, {
+            mergeSharedPositions: mirrorZ || meshType === 'beamDome',
+          })
           break
       }
     } catch (error) {
       console.error(`Export error (${format}):`, error)
-      alert(`エクスポート失敗: ${error instanceof Error ? error.message : '不明なエラー'}`)
+      alert(`${t.exportFailed}: ${error instanceof Error ? error.message : t.unknownError}`)
     } finally {
       setIsExporting(false)
     }
@@ -579,26 +662,48 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
   return (
     <div className="control-panel">
-      <h2>メッシュ設定</h2>
+      <h2>{t.panelTitle}</h2>
+
+      <div className="language-switch" aria-label={t.language}>
+        <span>{t.language}</span>
+        <div className="language-buttons">
+          <button
+            type="button"
+            className={`language-btn ${language === 'ja' ? 'active' : ''}`}
+            onClick={() => setLanguage('ja')}
+            aria-pressed={language === 'ja'}
+          >
+            {t.japanese}
+          </button>
+          <button
+            type="button"
+            className={`language-btn ${language === 'en' ? 'active' : ''}`}
+            onClick={() => setLanguage('en')}
+            aria-pressed={language === 'en'}
+          >
+            {t.english}
+          </button>
+        </div>
+      </div>
 
       <div className="control-group">
-        <label htmlFor="meshType">Mesh Type</label>
+        <label htmlFor="meshType">{t.meshType}</label>
         <select
           id="meshType"
           className="mesh-type-select"
           value={meshType}
           onChange={handleMeshTypeChange}
         >
-          {EFFECT_MESH_TYPE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
+          {MESH_TYPE_OPTION_VALUES.map((value) => (
+            <option key={value} value={value}>
+              {t.meshTypes[value]}
             </option>
           ))}
         </select>
       </div>
 
       <div className="control-group">
-        <label htmlFor="divisions">分割数</label>
+        <label htmlFor="divisions">{t.divisions}</label>
         <input
           id="divisions"
           type="range"
@@ -611,7 +716,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       <div className="control-group">
-        <label htmlFor="widthDivisions">Width Divisions</label>
+        <label htmlFor="widthDivisions">{t.widthDivisions}</label>
         <input
           id="widthDivisions"
           type="range"
@@ -624,7 +729,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       <div className="control-group">
-        <label htmlFor="thickness">厚み</label>
+        <label htmlFor="thickness">{t.thickness}</label>
         <input
           id="thickness"
           type="range"
@@ -638,7 +743,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       <div className="control-group">
-        <label htmlFor="length">長さ</label>
+        <label htmlFor="length">{t.length}</label>
         <input
           id="length"
           type="range"
@@ -652,7 +757,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       <div className="control-group">
-        <label htmlFor="curve">曲線強度</label>
+        <label htmlFor="curve">{t.curve}</label>
         <input
           id="curve"
           type="range"
@@ -666,7 +771,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       <div className="control-group">
-        <label htmlFor="topCurve">Top Curve</label>
+        <label htmlFor="topCurve">{t.topCurve}</label>
         <input
           id="topCurve"
           type="range"
@@ -680,7 +785,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       <div className="control-group">
-        <label htmlFor="taper">Taper</label>
+        <label htmlFor="taper">{t.taper}</label>
         <input
           id="taper"
           type="range"
@@ -694,7 +799,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       <div className="control-group">
-        <label htmlFor="spread">Spread</label>
+        <label htmlFor="spread">{t.spread}</label>
         <input
           id="spread"
           type="range"
@@ -708,7 +813,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       <div className="control-group">
-        <label htmlFor="twist">Twist</label>
+        <label htmlFor="twist">{t.twist}</label>
         <input
           id="twist"
           type="range"
@@ -722,7 +827,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       <div className="control-group">
-        <label htmlFor="waveCount">Wave Count</label>
+        <label htmlFor="waveCount">{t.waveCount}</label>
         <input
           id="waveCount"
           type="range"
@@ -737,7 +842,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
       {meshType === 'lightningRibbon' && (
         <div className="control-group">
-          <label htmlFor="seed">Seed</label>
+          <label htmlFor="seed">{t.seed}</label>
           <input
             id="seed"
             type="range"
@@ -754,7 +859,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       {meshType === 'beamDome' && (
         <>
           <div className="control-group">
-            <label htmlFor="cylinderDivisions">Cylinder Divisions</label>
+            <label htmlFor="cylinderDivisions">{t.cylinderDivisions}</label>
             <input
               id="cylinderDivisions"
               type="range"
@@ -768,7 +873,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           </div>
 
           <div className="control-group">
-            <label htmlFor="cylinderScale">Cylinder Scale</label>
+            <label htmlFor="cylinderScale">{t.cylinderScale}</label>
             <input
               id="cylinderScale"
               type="range"
@@ -785,7 +890,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
       {(meshType === 'sphere' || meshType === 'zHemisphere') && (
         <div className="control-group">
-          <label htmlFor="yClip">Y Clip</label>
+          <label htmlFor="yClip">{t.yClip}</label>
           <input
             id="yClip"
             type="range"
@@ -800,60 +905,60 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       )}
 
       <div className="control-group toggle-row">
-        <span>ワイヤーフレーム</span>
+        <span>{t.wireframe}</span>
         <button
           type="button"
           className={`toggle-btn ${wireframe ? 'active' : ''}`}
           onClick={() => setWireframe(!wireframe)}
         >
-          {wireframe ? 'ON' : 'OFF'}
+          {wireframe ? t.on : t.off}
         </button>
       </div>
 
       <div className="control-group toggle-row">
-        <span>UV表示</span>
+        <span>{t.showUV}</span>
         <button
           type="button"
           className={`toggle-btn ${showUV ? 'active' : ''}`}
           onClick={() => setShowUV(!showUV)}
         >
-          {showUV ? 'ON' : 'OFF'}
+          {showUV ? t.on : t.off}
         </button>
       </div>
 
       <div className="control-group toggle-row">
-        <span>3D Texture</span>
+        <span>{t.texture3D}</span>
         <button
           type="button"
           className={`toggle-btn ${showTextureIn3D ? 'active' : ''}`}
           onClick={() => setShowTextureIn3D(!showTextureIn3D)}
         >
-          {showTextureIn3D ? 'ON' : 'OFF'}
+          {showTextureIn3D ? t.on : t.off}
         </button>
       </div>
 
       <div className="control-group toggle-row">
-        <span>UV Scroll</span>
+        <span>{t.uvScroll}</span>
         <div className="inline-actions">
           <button
             type="button"
             className="toggle-btn"
             onClick={onUVScrollReset}
           >
-            Reset
+            {t.reset}
           </button>
           <button
             type="button"
             className={`toggle-btn ${animateUVScroll ? 'active' : ''}`}
             onClick={() => setAnimateUVScroll(!animateUVScroll)}
           >
-            {animateUVScroll ? 'ON' : 'OFF'}
+            {animateUVScroll ? t.on : t.off}
           </button>
         </div>
       </div>
 
       <div className="control-group texture-control">
-        <label htmlFor="textureFile">Texture</label>
+        <label htmlFor="textureFile">{t.texture}</label>
         <input
           ref={textureFileInputRef}
           id="textureFile"
@@ -868,7 +973,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             className="texture-btn"
             onClick={() => textureFileInputRef.current?.click()}
           >
-            Choose Image
+            {t.chooseImage}
           </button>
           <button
             type="button"
@@ -876,61 +981,61 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             onClick={handleTextureReset}
             disabled={!textureName}
           >
-            Checker
+            {t.checker}
           </button>
         </div>
-        <div className="texture-name" title={textureName ?? 'Checker'}>
-          {textureName ?? 'Checker'}
+        <div className="texture-name" title={textureName ?? t.checker}>
+          {textureName ?? t.checker}
         </div>
       </div>
 
       <div className="control-group toggle-row">
-        <span>UV Rotate</span>
+        <span>{t.uvRotate}</span>
         <button
           type="button"
           className={`toggle-btn ${uvRotation !== 0 ? 'active' : ''}`}
           onClick={() => setUVRotation((uvRotation + 90) % 360)}
         >
-          {uvRotation} deg
+          {uvRotation} {t.degrees}
         </button>
       </div>
 
       <div className="control-group toggle-row">
-        <span>Mirror Z</span>
+        <span>{t.mirrorZ}</span>
         <button
           type="button"
           className={`toggle-btn ${mirrorZ ? 'active' : ''}`}
           onClick={() => setMirrorZ(!mirrorZ)}
         >
-          {mirrorZ ? 'ON' : 'OFF'}
+          {mirrorZ ? t.on : t.off}
         </button>
       </div>
 
       <div className="control-group toggle-row">
-        <span>Polygon Count</span>
+        <span>{t.polygonCount}</span>
         <button
           type="button"
           className={`toggle-btn ${showPolygonCount ? 'active' : ''}`}
           onClick={() => setShowPolygonCount(!showPolygonCount)}
           disabled={!mesh}
         >
-          {showPolygonCount ? 'ON' : 'SHOW'}
+          {showPolygonCount ? t.on : t.show}
         </button>
       </div>
 
       <div className="control-group toggle-row">
-        <span>Pivot</span>
+        <span>{t.pivot}</span>
         <button
           type="button"
           className={`toggle-btn ${showPivot ? 'active' : ''}`}
           onClick={() => setShowPivot(!showPivot)}
         >
-          {showPivot ? 'ON' : 'OFF'}
+          {showPivot ? t.on : t.off}
         </button>
       </div>
 
       <div className="control-group">
-        <label>Pivot Position</label>
+        <label>{t.pivotPosition}</label>
         <div className="vector-inputs">
           <label>
             X
@@ -938,7 +1043,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               type="number"
               step="0.1"
               className="draggable-number"
-              title="Drag horizontally to adjust"
+              title={t.dragToAdjust}
               value={pivot.x}
               onPointerDown={(e) => handlePivotDragStart(e, 'x')}
               onChange={(e) => handlePivotChange('x', parseFloat(e.target.value) || 0)}
@@ -950,7 +1055,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               type="number"
               step="0.1"
               className="draggable-number"
-              title="Drag horizontally to adjust"
+              title={t.dragToAdjust}
               value={pivot.y}
               onPointerDown={(e) => handlePivotDragStart(e, 'y')}
               onChange={(e) => handlePivotChange('y', parseFloat(e.target.value) || 0)}
@@ -962,7 +1067,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               type="number"
               step="0.1"
               className="draggable-number"
-              title="Drag horizontally to adjust"
+              title={t.dragToAdjust}
               value={pivot.z}
               onPointerDown={(e) => handlePivotDragStart(e, 'z')}
               onChange={(e) => handlePivotChange('z', parseFloat(e.target.value) || 0)}
@@ -972,7 +1077,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       <div className="control-group">
-        <label>Scale</label>
+        <label>{t.scale}</label>
         <div className="vector-inputs">
           <label>
             X
@@ -980,7 +1085,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               type="number"
               step="0.1"
               className="draggable-number"
-              title="Drag horizontally to adjust"
+              title={t.dragToAdjust}
               value={scale.x}
               onPointerDown={(e) => handleScaleDragStart(e, 'x')}
               onChange={(e) => handleScaleChange('x', parseScaleInput(e.target.value))}
@@ -992,7 +1097,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               type="number"
               step="0.1"
               className="draggable-number"
-              title="Drag horizontally to adjust"
+              title={t.dragToAdjust}
               value={scale.y}
               onPointerDown={(e) => handleScaleDragStart(e, 'y')}
               onChange={(e) => handleScaleChange('y', parseScaleInput(e.target.value))}
@@ -1004,7 +1109,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               type="number"
               step="0.1"
               className="draggable-number"
-              title="Drag horizontally to adjust"
+              title={t.dragToAdjust}
               value={scale.z}
               onPointerDown={(e) => handleScaleDragStart(e, 'z')}
               onChange={(e) => handleScaleChange('z', parseScaleInput(e.target.value))}
@@ -1013,17 +1118,59 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
       </div>
 
+      <div className="control-group">
+        <label>{t.rotation}</label>
+        <div className="vector-inputs">
+          <label>
+            X
+            <input
+              type="number"
+              step="1"
+              className="draggable-number"
+              title={t.dragToAdjust}
+              value={rotation.x}
+              onPointerDown={(e) => handleRotationDragStart(e, 'x')}
+              onChange={(e) => handleRotationChange('x', parseRotationInput(e.target.value))}
+            />
+          </label>
+          <label>
+            Y
+            <input
+              type="number"
+              step="1"
+              className="draggable-number"
+              title={t.dragToAdjust}
+              value={rotation.y}
+              onPointerDown={(e) => handleRotationDragStart(e, 'y')}
+              onChange={(e) => handleRotationChange('y', parseRotationInput(e.target.value))}
+            />
+          </label>
+          <label>
+            Z
+            <input
+              type="number"
+              step="1"
+              className="draggable-number"
+              title={t.dragToAdjust}
+              value={rotation.z}
+              onPointerDown={(e) => handleRotationDragStart(e, 'z')}
+              onChange={(e) => handleRotationChange('z', parseRotationInput(e.target.value))}
+            />
+          </label>
+        </div>
+      </div>
+
       <div className="export-section">
-        <h3>エクスポート</h3>
+        <h3>{t.export}</h3>
         <div className="debug-info" style={{ fontSize: '11px', color: '#888', marginBottom: '8px' }}>
-          Status: {mesh ? '✓ Ready' : '✗ Loading...'}
+          {t.status}: {mesh ? `✓ ${t.ready}` : `✗ ${t.loading}`}
         </div>
         <div className="export-buttons">
           <button
             className="export-btn fbx-btn"
             onClick={() => handleExport('fbx')}
             disabled={isExporting || !mesh}
-            title="FBX形式でダウンロード (Maya, 3DS Max, MotionBuilder対応)"
+            title={t.downloadAsFBX}
           >
             FBX
           </button>
@@ -1031,7 +1178,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             className="export-btn glb-btn"
             onClick={() => handleExport('glb')}
             disabled={isExporting || !mesh}
-            title="GLB形式でダウンロード (Unity, UE5推奨)"
+            title={t.downloadAsGLB}
           >
             GLB
           </button>
@@ -1039,7 +1186,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             className="export-btn gltf-btn"
             onClick={() => handleExport('gltf')}
             disabled={isExporting || !mesh}
-            title="GLTF形式でダウンロード (JSON形式)"
+            title={t.downloadAsGLTF}
           >
             GLTF
           </button>
@@ -1047,12 +1194,12 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             className="export-btn obj-btn"
             onClick={() => handleExport('obj')}
             disabled={isExporting || !mesh}
-            title="OBJ形式でダウンロード (汎用フォーマット)"
+            title={t.downloadAsOBJ}
           >
             OBJ
           </button>
         </div>
-        {isExporting && <p className="exporting-message">エクスポート中...</p>}
+        {isExporting && <p className="exporting-message">{t.exporting}</p>}
       </div>
     </div>
   )
