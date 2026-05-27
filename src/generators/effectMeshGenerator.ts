@@ -98,7 +98,8 @@ export function generateEffectMesh(
         params.length,
         params.curve,
         params.topCurve,
-        params.taper
+        params.taper,
+        params.twist
       )
   }
 }
@@ -379,7 +380,7 @@ function generateFlatRingMesh(params: EffectMeshParams): THREE.BufferGeometry {
   const liftAmount = getTopCurveAmount(params)
 
   return createGridGeometry(radialSegments, widthSegments, (u, v) => {
-    const angle = u * Math.PI * 2
+    const angle = u * Math.PI * 2 + params.twist * Math.PI * v
     const radius = THREE.MathUtils.lerp(outerRadius, innerRadius, v)
     const z = Math.sin(Math.PI * v) * params.thickness * 0.5 * liftAmount
 
@@ -397,22 +398,28 @@ function generateSphereMesh(params: EffectMeshParams): THREE.BufferGeometry {
   const yClipAmount = THREE.MathUtils.clamp(params.yClip, 0, 1)
   const maxTheta = THREE.MathUtils.lerp(Math.PI, 0.001, yClipAmount)
 
-  return createGridGeometry(latitudeSegments, longitudeSegments, (u, v) => {
+  const geometry = createGridGeometry(latitudeSegments, longitudeSegments, (u, v) => {
     const theta = u * maxTheta
     const phi = -v * Math.PI * 2
     return getSphericalVertex(radius, theta, phi)
   })
+
+  rotateUVs180(geometry)
+  return geometry
 }
 
 function generateHemisphereMesh(params: EffectMeshParams): THREE.BufferGeometry {
   const { latitudeSegments, longitudeSegments } = getSphericalSegmentCounts(params)
   const radius = getSphericalRadius(params)
 
-  return createGridGeometry(latitudeSegments, longitudeSegments, (u, v) => {
+  const geometry = createGridGeometry(latitudeSegments, longitudeSegments, (u, v) => {
     const theta = u * Math.PI * 0.5
     const phi = -v * Math.PI * 2
     return getSphericalVertex(radius, theta, phi)
   })
+
+  rotateUVs180(geometry)
+  return geometry
 }
 
 function generateZHemisphereMesh(params: EffectMeshParams): THREE.BufferGeometry {
@@ -421,18 +428,22 @@ function generateZHemisphereMesh(params: EffectMeshParams): THREE.BufferGeometry
   const yClipAmount = THREE.MathUtils.clamp(params.yClip, 0, 1)
   const maxTheta = THREE.MathUtils.lerp(Math.PI, 0.001, yClipAmount)
 
-  return createGridGeometry(latitudeSegments, longitudeSegments, (u, v) => {
+  const geometry = createGridGeometry(latitudeSegments, longitudeSegments, (u, v) => {
     const theta = u * maxTheta
     const phi = -Math.PI - v * Math.PI
     return getSphericalVertex(radius, theta, phi)
   })
+
+  rotateUVs180(geometry)
+  return geometry
 }
 
 function generateOpenCylinderMesh(params: EffectMeshParams): THREE.BufferGeometry {
   const heightSegments = Math.max(1, Math.floor(params.divisions))
   const radialSegments = Math.max(8, Math.floor(params.widthDivisions * 4))
-  const halfHeight = params.length / 2
-  const tubeRadius = Math.max(params.thickness * 0.5, 0.001)
+  const sizeScale = 2
+  const halfHeight = (params.length * sizeScale) / 2
+  const tubeRadius = Math.max(params.thickness * sizeScale * 0.5, 0.001)
   const curveAmount = getCurveAmount(params)
   const spreadAmount = Math.max(0, params.spread)
 
@@ -472,7 +483,7 @@ function generateBeamDomeMesh(params: EffectMeshParams): THREE.BufferGeometry {
     uRows.push(cylinderRatio + ((1 - cylinderRatio) * i) / capSegments)
   }
 
-  return createGridGeometryFromURows(uRows, radialSegments, (u, v) => {
+  const geometry = createGridGeometryFromURows(uRows, radialSegments, (u, v) => {
     const phi = v * Math.PI * 2
     let currentRadius = radius
     let y = THREE.MathUtils.lerp(bottomY, capBaseY, Math.min(u / cylinderRatio, 1))
@@ -493,6 +504,9 @@ function generateBeamDomeMesh(params: EffectMeshParams): THREE.BufferGeometry {
     vertex.applyAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI * -0.5)
     return vertex
   })
+
+  rotateUVs180(geometry)
+  return geometry
 }
 
 function createGridGeometry(
@@ -551,6 +565,17 @@ function createGridGeometryFromURows(
   geometry.computeVertexNormals()
 
   return geometry
+}
+
+function rotateUVs180(geometry: THREE.BufferGeometry): void {
+  const uvAttribute = geometry.getAttribute('uv')
+  if (!uvAttribute) return
+
+  for (let i = 0; i < uvAttribute.count; i++) {
+    uvAttribute.setXY(i, 1 - uvAttribute.getX(i), 1 - uvAttribute.getY(i))
+  }
+
+  uvAttribute.needsUpdate = true
 }
 
 function getSegmentCounts(params: EffectMeshParams): {

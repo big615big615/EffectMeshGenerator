@@ -14,6 +14,7 @@ const FRONT_SURFACE_COLOR = 0x00ff88
 const FRONT_SURFACE_EMISSIVE = 0x00aa44
 const BACK_SURFACE_COLOR = 0xff4f8b
 const BACK_SURFACE_EMISSIVE = 0x66152d
+const UV_SCROLL_SPEED = 0.35
 
 interface TextureSource {
   url: string
@@ -26,6 +27,8 @@ interface ViewportProps {
   wireframe: boolean
   showUV: boolean
   showTextureIn3D: boolean
+  animateUVScroll: boolean
+  uvScrollResetVersion: number
   uvRotation: number
   mirrorZ: boolean
   showPolygonCount: boolean
@@ -50,6 +53,8 @@ const Viewport: React.FC<ViewportProps> = ({
   wireframe,
   showUV,
   showTextureIn3D,
+  animateUVScroll,
+  uvScrollResetVersion,
   uvRotation,
   mirrorZ,
   showPolygonCount,
@@ -76,6 +81,7 @@ const Viewport: React.FC<ViewportProps> = ({
   const uploadedTextureRef = useRef<THREE.Texture | null>(null)
   const showUVRef = useRef(showUV)
   const showSurfaceTextureRef = useRef(showUV || showTextureIn3D)
+  const animateUVScrollRef = useRef(animateUVScroll)
 
   useEffect(() => {
     showUVRef.current = showUV
@@ -84,6 +90,14 @@ const Viewport: React.FC<ViewportProps> = ({
   useEffect(() => {
     showSurfaceTextureRef.current = showUV || showTextureIn3D
   }, [showUV, showTextureIn3D])
+
+  useEffect(() => {
+    animateUVScrollRef.current = animateUVScroll
+  }, [animateUVScroll])
+
+  useEffect(() => {
+    resetPreviewTextureScroll()
+  }, [uvScrollResetVersion])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -186,8 +200,17 @@ const Viewport: React.FC<ViewportProps> = ({
 
     // Animation loop
     let animationId: number
+    let previousTime = performance.now()
     const animate = () => {
       animationId = requestAnimationFrame(animate)
+      const currentTime = performance.now()
+      const deltaSeconds = (currentTime - previousTime) / 1000
+      previousTime = currentTime
+
+      if (animateUVScrollRef.current) {
+        scrollPreviewTexture(deltaSeconds)
+      }
+
       controls.update()
 
       if (showUVRef.current) {
@@ -400,8 +423,8 @@ const Viewport: React.FC<ViewportProps> = ({
     texture.colorSpace = THREE.SRGBColorSpace
     texture.magFilter = THREE.LinearFilter
     texture.minFilter = THREE.LinearFilter
-    texture.wrapS = THREE.ClampToEdgeWrapping
-    texture.wrapT = THREE.ClampToEdgeWrapping
+    texture.wrapS = THREE.RepeatWrapping
+    texture.wrapT = THREE.RepeatWrapping
     texture.needsUpdate = true
   }
 
@@ -415,6 +438,20 @@ const Viewport: React.FC<ViewportProps> = ({
     }
 
     return checkerTextureRef.current
+  }
+
+  const scrollPreviewTexture = (deltaSeconds: number) => {
+    const texture = getPreviewTexture()
+    texture.offset.y = wrapUnit(texture.offset.y + deltaSeconds * UV_SCROLL_SPEED)
+  }
+
+  const resetPreviewTextureScroll = () => {
+    const texture = getPreviewTexture()
+    texture.offset.y = 0
+  }
+
+  const wrapUnit = (value: number) => {
+    return ((value % 1) + 1) % 1
   }
 
   const applyPreviewTexture = (texture: THREE.Texture) => {
@@ -495,8 +532,8 @@ const Viewport: React.FC<ViewportProps> = ({
     texture.colorSpace = THREE.SRGBColorSpace
     texture.magFilter = THREE.NearestFilter
     texture.minFilter = THREE.NearestFilter
-    texture.wrapS = THREE.ClampToEdgeWrapping
-    texture.wrapT = THREE.ClampToEdgeWrapping
+    texture.wrapS = THREE.RepeatWrapping
+    texture.wrapT = THREE.RepeatWrapping
     texture.needsUpdate = true
     return texture
   }

@@ -217,14 +217,14 @@ const Z_HEMISPHERE_DEFAULT_PARAMS: EffectMeshParams = {
 }
 
 const OPEN_CYLINDER_DEFAULT_PARAMS: EffectMeshParams = {
-  divisions: 8,
-  widthDivisions: 8,
+  divisions: 2,
+  widthDivisions: 12,
   thickness: 1,
-  length: 3,
+  length: 0.3,
   curve: 0,
   topCurve: 0,
   taper: 0,
-  spread: 0,
+  spread: 0.5,
   twist: 0,
   waveCount: 1,
   seed: 0,
@@ -233,7 +233,7 @@ const OPEN_CYLINDER_DEFAULT_PARAMS: EffectMeshParams = {
 }
 
 const BEAM_DOME_DEFAULT_PARAMS: EffectMeshParams = {
-  divisions: 24,
+  divisions: 5,
   widthDivisions: 8,
   thickness: 1,
   length: 4,
@@ -261,6 +261,9 @@ interface ControlPanelProps {
   setShowUV: (value: boolean) => void
   showTextureIn3D: boolean
   setShowTextureIn3D: (value: boolean) => void
+  animateUVScroll: boolean
+  setAnimateUVScroll: (value: boolean) => void
+  onUVScrollReset: () => void
   uvRotation: number
   setUVRotation: (value: number) => void
   mirrorZ: boolean
@@ -298,6 +301,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   setShowUV,
   showTextureIn3D,
   setShowTextureIn3D,
+  animateUVScroll,
+  setAnimateUVScroll,
+  onUVScrollReset,
   uvRotation,
   setUVRotation,
   mirrorZ,
@@ -824,6 +830,26 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         >
           {showTextureIn3D ? 'ON' : 'OFF'}
         </button>
+      </div>
+
+      <div className="control-group toggle-row">
+        <span>UV Scroll</span>
+        <div className="inline-actions">
+          <button
+            type="button"
+            className="toggle-btn"
+            onClick={onUVScrollReset}
+          >
+            Reset
+          </button>
+          <button
+            type="button"
+            className={`toggle-btn ${animateUVScroll ? 'active' : ''}`}
+            onClick={() => setAnimateUVScroll(!animateUVScroll)}
+          >
+            {animateUVScroll ? 'ON' : 'OFF'}
+          </button>
+        </div>
       </div>
 
       <div className="control-group texture-control">

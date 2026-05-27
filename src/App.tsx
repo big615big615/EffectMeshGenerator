@@ -42,6 +42,8 @@ const App: React.FC = () => {
   const [wireframe, setWireframe] = useState(false)
   const [showUV, setShowUV] = useState(false)
   const [showTextureIn3D, setShowTextureIn3D] = useState(false)
+  const [animateUVScroll, setAnimateUVScroll] = useState(false)
+  const [uvScrollResetVersion, setUVScrollResetVersion] = useState(0)
   const [uvRotation, setUVRotation] = useState(0)
   const [mirrorZ, setMirrorZ] = useState(false)
   const [showPolygonCount, setShowPolygonCount] = useState(false)
@@ -77,6 +79,8 @@ const App: React.FC = () => {
           wireframe={wireframe}
           showUV={showUV}
           showTextureIn3D={showTextureIn3D}
+          animateUVScroll={animateUVScroll}
+          uvScrollResetVersion={uvScrollResetVersion}
           uvRotation={uvRotation}
           mirrorZ={mirrorZ}
           showPolygonCount={showPolygonCount}
@@ -100,6 +104,9 @@ const App: React.FC = () => {
           setShowUV={setShowUV}
           showTextureIn3D={showTextureIn3D}
           setShowTextureIn3D={setShowTextureIn3D}
+          animateUVScroll={animateUVScroll}
+          setAnimateUVScroll={setAnimateUVScroll}
+          onUVScrollReset={() => setUVScrollResetVersion((version) => version + 1)}
           uvRotation={uvRotation}
           setUVRotation={setUVRotation}
           mirrorZ={mirrorZ}

@@ -7,7 +7,8 @@ export function generateSlashMesh(
   length: number,
   curve: number,
   topCurve: number,
-  taper: number
+  taper: number,
+  twist = 0
 ): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry()
   const lengthSegments = Math.max(1, Math.floor(divisions))
@@ -39,6 +40,12 @@ export function generateSlashMesh(
     const tangent = getCenterlineTangent(centerPoints, i)
     const normalDirection = getSurfaceNormal(widthDirection, tangent)
     const u = i / lengthSegments
+    const twistRotation = new THREE.Quaternion().setFromAxisAngle(
+      tangent,
+      (u - 0.5) * Math.PI * twist
+    )
+    const twistedWidthDirection = widthDirection.clone().applyQuaternion(twistRotation)
+    const twistedNormalDirection = normalDirection.clone().applyQuaternion(twistRotation)
     const taperProfile = Math.sin(Math.PI * u)
     const currentThickness = thickness * THREE.MathUtils.lerp(1 - taperAmount, 1, taperProfile)
     const tubeRadius = currentThickness / 2
@@ -50,8 +57,8 @@ export function generateSlashMesh(
       const tubeWidthOffset = Math.cos(tubeAngle) * tubeRadius
       const widthOffset = THREE.MathUtils.lerp(flatWidthOffset, tubeWidthOffset, tubeAmount)
       const tubeProfile = Math.sin(tubeAngle)
-      const vertex = centerPoint.clone().addScaledVector(widthDirection, widthOffset)
-      vertex.addScaledVector(normalDirection, tubeProfile * tubeRadius * tubeAmount)
+      const vertex = centerPoint.clone().addScaledVector(twistedWidthDirection, widthOffset)
+      vertex.addScaledVector(twistedNormalDirection, tubeProfile * tubeRadius * tubeAmount)
 
       vertices.push(vertex.x, vertex.y, vertex.z)
       uvs.push(u, 1 - v)

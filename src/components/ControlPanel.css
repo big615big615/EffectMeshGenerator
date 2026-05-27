@@ -157,6 +157,11 @@
   border-color: #00ff88;
 }
 
+.inline-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .texture-control {
   padding: 12px 0;
   border-top: 1px solid #333;
