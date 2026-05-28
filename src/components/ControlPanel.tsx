@@ -248,9 +248,10 @@ const BEAM_DOME_DEFAULT_PARAMS: EffectMeshParams = {
 
 const MESH_TYPE_OPTION_VALUES: ReadonlyArray<EffectMeshType> = [
   'slash',
+  'arc',
+  'openCylinder',
   'ribbon',
   'lightningRibbon',
-  'arc',
   'risingSpiralRibbon',
   'cylinderSpiralRibbon',
   'plane',
@@ -258,7 +259,6 @@ const MESH_TYPE_OPTION_VALUES: ReadonlyArray<EffectMeshType> = [
   'sphere',
   'hemisphere',
   'zHemisphere',
-  'openCylinder',
   'beamDome',
 ]
 
@@ -916,25 +916,35 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       <div className="control-group toggle-row">
-        <span>{t.showUV}</span>
+        <span>{t.mirrorZ}</span>
         <button
           type="button"
-          className={`toggle-btn ${showUV ? 'active' : ''}`}
-          onClick={() => setShowUV(!showUV)}
+          className={`toggle-btn ${mirrorZ ? 'active' : ''}`}
+          onClick={() => setMirrorZ(!mirrorZ)}
         >
-          {showUV ? t.on : t.off}
+          {mirrorZ ? t.on : t.off}
         </button>
       </div>
 
       <div className="control-group toggle-row">
-        <span>{t.texture3D}</span>
-        <button
-          type="button"
-          className={`toggle-btn ${showTextureIn3D ? 'active' : ''}`}
-          onClick={() => setShowTextureIn3D(!showTextureIn3D)}
-        >
-          {showTextureIn3D ? t.on : t.off}
-        </button>
+        <span>{t.showUV}</span>
+        <div className="inline-actions">
+          <button
+            type="button"
+            className={`toggle-btn ${uvRotation !== 0 ? 'active' : ''}`}
+            title={t.uvRotate}
+            onClick={() => setUVRotation((uvRotation + 90) % 360)}
+          >
+            {uvRotation} {t.degrees}
+          </button>
+          <button
+            type="button"
+            className={`toggle-btn ${showUV ? 'active' : ''}`}
+            onClick={() => setShowUV(!showUV)}
+          >
+            {showUV ? t.on : t.off}
+          </button>
+        </div>
       </div>
 
       <div className="control-group toggle-row">
@@ -958,7 +968,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       <div className="control-group texture-control">
-        <label htmlFor="textureFile">{t.texture}</label>
         <input
           ref={textureFileInputRef}
           id="textureFile"
@@ -967,6 +976,16 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           accept="image/*"
           onChange={handleTextureInputChange}
         />
+        <div className="texture-display-row">
+          <span>{t.texture3D}</span>
+          <button
+            type="button"
+            className={`toggle-btn ${showTextureIn3D ? 'active' : ''}`}
+            onClick={() => setShowTextureIn3D(!showTextureIn3D)}
+          >
+            {showTextureIn3D ? t.on : t.off}
+          </button>
+        </div>
         <div className="texture-actions">
           <button
             type="button"
@@ -987,28 +1006,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         <div className="texture-name" title={textureName ?? t.checker}>
           {textureName ?? t.checker}
         </div>
-      </div>
-
-      <div className="control-group toggle-row">
-        <span>{t.uvRotate}</span>
-        <button
-          type="button"
-          className={`toggle-btn ${uvRotation !== 0 ? 'active' : ''}`}
-          onClick={() => setUVRotation((uvRotation + 90) % 360)}
-        >
-          {uvRotation} {t.degrees}
-        </button>
-      </div>
-
-      <div className="control-group toggle-row">
-        <span>{t.mirrorZ}</span>
-        <button
-          type="button"
-          className={`toggle-btn ${mirrorZ ? 'active' : ''}`}
-          onClick={() => setMirrorZ(!mirrorZ)}
-        >
-          {mirrorZ ? t.on : t.off}
-        </button>
       </div>
 
       <div className="control-group toggle-row">
@@ -1077,48 +1074,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       <div className="control-group">
-        <label>{t.scale}</label>
-        <div className="vector-inputs">
-          <label>
-            X
-            <input
-              type="number"
-              step="0.1"
-              className="draggable-number"
-              title={t.dragToAdjust}
-              value={scale.x}
-              onPointerDown={(e) => handleScaleDragStart(e, 'x')}
-              onChange={(e) => handleScaleChange('x', parseScaleInput(e.target.value))}
-            />
-          </label>
-          <label>
-            Y
-            <input
-              type="number"
-              step="0.1"
-              className="draggable-number"
-              title={t.dragToAdjust}
-              value={scale.y}
-              onPointerDown={(e) => handleScaleDragStart(e, 'y')}
-              onChange={(e) => handleScaleChange('y', parseScaleInput(e.target.value))}
-            />
-          </label>
-          <label>
-            Z
-            <input
-              type="number"
-              step="0.1"
-              className="draggable-number"
-              title={t.dragToAdjust}
-              value={scale.z}
-              onPointerDown={(e) => handleScaleDragStart(e, 'z')}
-              onChange={(e) => handleScaleChange('z', parseScaleInput(e.target.value))}
-            />
-          </label>
-        </div>
-      </div>
-
-      <div className="control-group">
         <label>{t.rotation}</label>
         <div className="vector-inputs">
           <label>
@@ -1155,6 +1110,48 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               value={rotation.z}
               onPointerDown={(e) => handleRotationDragStart(e, 'z')}
               onChange={(e) => handleRotationChange('z', parseRotationInput(e.target.value))}
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="control-group">
+        <label>{t.scale}</label>
+        <div className="vector-inputs">
+          <label>
+            X
+            <input
+              type="number"
+              step="0.1"
+              className="draggable-number"
+              title={t.dragToAdjust}
+              value={scale.x}
+              onPointerDown={(e) => handleScaleDragStart(e, 'x')}
+              onChange={(e) => handleScaleChange('x', parseScaleInput(e.target.value))}
+            />
+          </label>
+          <label>
+            Y
+            <input
+              type="number"
+              step="0.1"
+              className="draggable-number"
+              title={t.dragToAdjust}
+              value={scale.y}
+              onPointerDown={(e) => handleScaleDragStart(e, 'y')}
+              onChange={(e) => handleScaleChange('y', parseScaleInput(e.target.value))}
+            />
+          </label>
+          <label>
+            Z
+            <input
+              type="number"
+              step="0.1"
+              className="draggable-number"
+              title={t.dragToAdjust}
+              value={scale.z}
+              onPointerDown={(e) => handleScaleDragStart(e, 'z')}
+              onChange={(e) => handleScaleChange('z', parseScaleInput(e.target.value))}
             />
           </label>
         </div>

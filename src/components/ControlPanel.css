@@ -224,6 +224,19 @@
   display: none;
 }
 
+.texture-display-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.texture-display-row span {
+  color: #cfcfcf;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .texture-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;

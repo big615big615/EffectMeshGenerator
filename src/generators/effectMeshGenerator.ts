@@ -448,7 +448,7 @@ function generateOpenCylinderMesh(params: EffectMeshParams): THREE.BufferGeometr
   const spreadAmount = Math.max(0, params.spread)
 
   return createGridGeometry(heightSegments, radialSegments, (u, v) => {
-    const phi = v * Math.PI * 2
+    const phi = v * Math.PI * 2 + u * params.twist * Math.PI
     const sideCurveProfile = Math.sin(Math.PI * u)
     const topScale = THREE.MathUtils.lerp(1, 1 + spreadAmount, u)
     const currentRadius = tubeRadius * topScale * (1 + curveAmount * sideCurveProfile * 2)
