@@ -2,7 +2,7 @@
   "name": "effect-mesh-generator",
   "version": "0.1.0",
   "description": "A browser-based mesh generator for realtime game VFX and Unity effect workflows.",
-  "homepage": "https://big615big615.github.io/EffetMeshGenerator/",
+  "homepage": "https://big615big615.github.io/EffectMeshGenerator/",
   "license": "MIT",
   "type": "module",
   "keywords": [

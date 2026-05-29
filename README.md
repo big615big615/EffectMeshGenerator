@@ -6,7 +6,7 @@ Unity などのリアルタイム VFX 制作用に、スラッシュ、リボン
 
 ブラウザで開いてすぐ使えます。
 
-https://big615big615.github.io/EffetMeshGenerator/
+https://big615big615.github.io/EffectMeshGenerator/
 
 ## Features
 
