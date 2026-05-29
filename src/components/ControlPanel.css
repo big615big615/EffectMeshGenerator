@@ -65,6 +65,24 @@
   color: #0a0a0a;
 }
 
+.legal-link-btn {
+  width: 100%;
+  background: #181818;
+  color: #d7ffe9;
+  border: 1px solid #404040;
+  border-radius: 4px;
+  padding: 9px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.legal-link-btn:hover {
+  border-color: #00ff88;
+  color: #00ff88;
+}
+
 .control-group {
   display: flex;
   flex-direction: column;
@@ -356,6 +374,99 @@
   text-align: center;
   margin-top: 8px;
   animation: pulse 1.5s infinite;
+}
+
+.legal-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.legal-modal {
+  width: min(560px, 100%);
+  max-height: min(760px, calc(100vh - 48px));
+  overflow: hidden;
+  border: 1px solid #404040;
+  border-radius: 6px;
+  background: #202020;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+.legal-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #404040;
+}
+
+.legal-modal-header h3 {
+  margin: 0;
+  color: #00ff88;
+  font-size: 15px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.legal-close-btn {
+  flex: 0 0 auto;
+  background: #181818;
+  color: #00ff88;
+  border: 1px solid #00ff88;
+  border-radius: 4px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.legal-close-btn:hover {
+  background: rgba(0, 255, 136, 0.1);
+}
+
+.legal-modal-content {
+  max-height: calc(100vh - 144px);
+  overflow-y: auto;
+  padding: 16px 18px 18px;
+}
+
+.legal-modal-content section + section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #333;
+}
+
+.legal-modal-content h4 {
+  margin: 0 0 6px;
+  color: #d7ffe9;
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+.legal-modal-content p {
+  margin: 0;
+  color: #cfcfcf;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.legal-modal-content a {
+  display: inline-block;
+  margin-top: 8px;
+  color: #00ff88;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.legal-modal-content a:hover {
+  text-decoration: underline;
 }
 
 @keyframes pulse {

@@ -324,6 +324,11 @@ const HIDDEN_MIRROR_Z_MESH_TYPES: ReadonlySet<EffectMeshType> = new Set([
   'beamDome',
 ])
 
+const CONTACT_URLS: Record<Language, string> = {
+  ja: 'https://forms.gle/PBUeyRmNTppJL2EQ8',
+  en: 'https://forms.gle/gXjDBKPhWy9H1Wft6',
+}
+
 interface ControlPanelProps {
   meshType: EffectMeshType
   setMeshType: (value: EffectMeshType) => void
@@ -412,6 +417,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   setLanguage,
 }) => {
   const [isExporting, setIsExporting] = useState(false)
+  const [isLegalPanelOpen, setIsLegalPanelOpen] = useState(false)
   const t = uiText[language]
   const textureFileInputRef = useRef<HTMLInputElement | null>(null)
   const pivotDragRef = useRef<{
@@ -785,6 +791,14 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           </button>
         </div>
       </div>
+
+      <button
+        type="button"
+        className="legal-link-btn"
+        onClick={() => setIsLegalPanelOpen(true)}
+      >
+        {t.usageAndPrivacy}
+      </button>
 
       <div className="control-group">
         <label htmlFor="meshType">{t.meshType}</label>
@@ -1329,6 +1343,63 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
         {isExporting && <p className="exporting-message">{t.exporting}</p>}
       </div>
+
+      {isLegalPanelOpen && (
+        <div
+          className="legal-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setIsLegalPanelOpen(false)
+            }
+          }}
+        >
+          <section
+            className="legal-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="legal-modal-title"
+          >
+            <div className="legal-modal-header">
+              <h3 id="legal-modal-title">{t.usageTermsTitle}</h3>
+              <button
+                type="button"
+                className="legal-close-btn"
+                onClick={() => setIsLegalPanelOpen(false)}
+                aria-label={t.close}
+              >
+                {t.close}
+              </button>
+            </div>
+
+            <div className="legal-modal-content">
+              <section>
+                <h4>{t.outputLicenseTitle}</h4>
+                <p>{t.outputLicenseBody}</p>
+              </section>
+              <section>
+                <h4>{t.attributionTitle}</h4>
+                <p>{t.attributionBody}</p>
+              </section>
+              <section>
+                <h4>{t.appLicenseTitle}</h4>
+                <p>{t.appLicenseBody}</p>
+              </section>
+              <section>
+                <h4>{t.privacyTitle}</h4>
+                <p>{t.privacyBody}</p>
+              </section>
+              <section>
+                <h4>{t.contactTitle}</h4>
+                <p>{t.contactBody}</p>
+                <a href={CONTACT_URLS[language]} target="_blank" rel="noreferrer">
+                  {t.contactLink}
+                </a>
+              </section>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   )
 }

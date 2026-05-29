@@ -83,6 +83,16 @@ npm.cmd run build
 
 画像テクスチャを選択した場合でも、ファイルはブラウザ内でプレビューに使われるだけで、このアプリから外部サーバーへ送信されません。
 
+## Usage Terms
+
+このツールで生成・エクスポートしたメッシュは、個人制作、商用作品、ゲーム、映像、アセット制作などで自由に利用できます。
+
+生成メッシュの利用にあたってクレジット表記は不要です。もし可能であれば Effect Mesh Generator の名前やリンクを添えてもらえると嬉しいです。
+
+アプリ本体のソースコードは MIT License です。ソースコードを再配布する場合は [LICENSE](LICENSE) の条件に従ってください。
+
+詳しくは [TERMS.md](TERMS.md) と [PRIVACY.md](PRIVACY.md) を参照してください。
+
 ## Development Notes
 
 - メッシュ生成の基準実装は `src/generators/slashMeshGenerator.ts` と `src/generators/effectMeshGenerator.ts` です。
@@ -110,6 +120,15 @@ npm run preview
 ## Contributing
 
 コントリビューションの流れは [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
+
+## Contact
+
+不具合、要望、利用条件についての相談はお問い合わせフォームから連絡してください。
+
+- Japanese: https://forms.gle/PBUeyRmNTppJL2EQ8
+- English: https://forms.gle/gXjDBKPhWy9H1Wft6
+
+フォームでは、名前またはニックネーム、カテゴリ、内容の入力をお願いしています。本名である必要はありません。返信が必要な場合のみ、メールアドレスなどの連絡先を任意で記載してください。
 
 ## License
 

@@ -60,6 +60,20 @@ export interface UiText {
   downloadAsGLB: string
   downloadAsGLTF: string
   downloadAsOBJ: string
+  usageAndPrivacy: string
+  close: string
+  usageTermsTitle: string
+  outputLicenseTitle: string
+  outputLicenseBody: string
+  attributionTitle: string
+  attributionBody: string
+  appLicenseTitle: string
+  appLicenseBody: string
+  privacyTitle: string
+  privacyBody: string
+  contactTitle: string
+  contactBody: string
+  contactLink: string
   meshTypes: MeshTypeLabels
 }
 
@@ -158,6 +172,25 @@ export const uiText: Record<Language, UiText> = {
     downloadAsGLB: 'GLB形式でダウンロード (Unity, UE5推奨)',
     downloadAsGLTF: 'GLTF形式でダウンロード (JSON形式)',
     downloadAsOBJ: 'OBJ形式でダウンロード (汎用フォーマット)',
+    usageAndPrivacy: '利用条件 / Privacy',
+    close: '閉じる',
+    usageTermsTitle: '利用条件とプライバシー',
+    outputLicenseTitle: '生成メッシュの利用',
+    outputLicenseBody:
+      'このツールで生成・エクスポートしたメッシュは、個人制作、商用作品、ゲーム、映像、アセット制作などで自由に利用できます。',
+    attributionTitle: 'クレジット表記',
+    attributionBody:
+      '生成メッシュの利用にあたってクレジット表記は不要です。もし可能であれば Effect Mesh Generator の名前やリンクを添えてもらえると嬉しいです。',
+    appLicenseTitle: 'アプリ本体のライセンス',
+    appLicenseBody:
+      'アプリ本体のソースコードは MIT License です。ソースコードをコピー、改変、再配布する場合は、著作権表示とライセンス文を残してください。',
+    privacyTitle: 'テクスチャとデータ',
+    privacyBody:
+      '選択したテクスチャ画像と生成メッシュはブラウザ内で処理されます。このアプリは画像やメッシュデータをサーバーへ保存・送信しません。',
+    contactTitle: '問い合わせ',
+    contactBody:
+      '不具合、要望、利用条件についての相談はお問い合わせフォームから連絡してください。返信が必要な場合は、フォーム内にメールアドレスなどの連絡先を任意で記載してください。',
+    contactLink: 'お問い合わせフォームを開く',
     meshTypes: {
       ...meshTypesJa,
       slash: 'スラッシュ/直線',
@@ -231,6 +264,25 @@ export const uiText: Record<Language, UiText> = {
     downloadAsGLB: 'Download as GLB (recommended for Unity, UE5)',
     downloadAsGLTF: 'Download as GLTF (JSON format)',
     downloadAsOBJ: 'Download as OBJ (general format)',
+    usageAndPrivacy: 'Usage / Privacy',
+    close: 'Close',
+    usageTermsTitle: 'Usage Terms and Privacy',
+    outputLicenseTitle: 'Generated Meshes',
+    outputLicenseBody:
+      'Meshes generated and exported with this tool may be used freely in personal projects, commercial works, games, videos, and asset production.',
+    attributionTitle: 'Attribution',
+    attributionBody:
+      'Attribution is not required for generated meshes. Credit or a link to Effect Mesh Generator is appreciated when practical.',
+    appLicenseTitle: 'Application License',
+    appLicenseBody:
+      'The application source code is licensed under the MIT License. If you redistribute the source code, follow the LICENSE terms.',
+    privacyTitle: 'Textures and Data',
+    privacyBody:
+      'Selected texture images and generated meshes are processed in your browser. This app does not save or upload images or mesh data to a server.',
+    contactTitle: 'Contact',
+    contactBody:
+      'For bugs, requests, or questions about usage terms, please use the contact form. If you need a reply, optionally include an email address or other contact information in the form.',
+    contactLink: 'Open Contact Form',
     meshTypes: meshTypesEn,
   },
 }

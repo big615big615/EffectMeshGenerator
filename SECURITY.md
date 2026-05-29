@@ -8,7 +8,12 @@ The latest commit on the default branch is the supported development target.
 
 Please do not publish exploit details in a public issue.
 
-If the repository has GitHub private vulnerability reporting enabled, use that channel. Otherwise, open an issue with a minimal description and ask for a private contact path before sharing reproduction details.
+Please use the contact form and avoid including exploit details in the first message:
+
+- Japanese: https://forms.gle/PBUeyRmNTppJL2EQ8
+- English: https://forms.gle/gXjDBKPhWy9H1Wft6
+
+If you need a reply, optionally include an email address or other contact information in the form.
 
 ## Notes
 
