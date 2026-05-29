@@ -2,6 +2,12 @@
 
 Unity などのリアルタイム VFX 制作用に、スラッシュ、リボン、リング、球面、ビームなどのエフェクト用メッシュをブラウザ上で生成する React + Vite + Three.js ツールです。
 
+## Web App
+
+ブラウザで開いてすぐ使えます。
+
+https://big615big615.github.io/EffetMeshGenerator/
+
 ## Features
 
 - リアルタイム 3D プレビュー
@@ -90,6 +96,12 @@ npm run dev
 npm run build
 npm run preview
 ```
+
+## Deployment
+
+`main` または `master` に push すると GitHub Actions が `dist/` をビルドし、GitHub Pages に自動デプロイします。
+
+初回だけ GitHub repository settings の Pages で Source が GitHub Actions になっていることを確認してください。
 
 ## Security
 
