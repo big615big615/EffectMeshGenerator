@@ -91,17 +91,33 @@ export function generateEffectMesh(
       return generateBeamDomeMesh(params)
     case 'slash':
     default:
-      return generateSlashMesh(
-        params.divisions,
-        params.widthDivisions,
-        params.thickness,
-        params.length,
-        params.curve,
-        params.topCurve,
-        params.taper,
-        params.twist
-      )
+      return generateSlashEffectMesh(params)
   }
+}
+
+export function generateDoubleSidedSlashMesh(params: EffectMeshParams): THREE.BufferGeometry {
+  const frontGeometry = generateSlashEffectMesh(params, 1)
+  const backGeometry = generateSlashEffectMesh(params, -1)
+  const combinedGeometry = combineOppositeFacingGeometries(frontGeometry, backGeometry)
+
+  frontGeometry.dispose()
+  backGeometry.dispose()
+  return combinedGeometry
+}
+
+function generateSlashEffectMesh(params: EffectMeshParams, liftDirection = 1): THREE.BufferGeometry {
+  return generateSlashMesh(
+    params.divisions,
+    params.widthDivisions,
+    params.thickness,
+    params.length,
+    params.curve,
+    params.topCurve,
+    params.taper,
+    params.twist,
+    params.spread,
+    liftDirection
+  )
 }
 
 function generateRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
@@ -110,12 +126,15 @@ function generateRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
   const curveAmount = getCurveAmount(params)
   const sideOffset = curveAmount * params.length * 0.3
   const liftAmount = getTopCurveAmount(params)
+  const spreadAmount = Math.max(0, params.spread)
   const waveCount = Math.max(1, params.waveCount)
+  const waveOffset = getSeededPhaseOffset(params.seed)
   const centerPoints: THREE.Vector3[] = []
 
   for (let i = 0; i <= lengthSegments; i++) {
     const u = i / lengthSegments
-    const x = Math.sin((u - 0.5) * Math.PI * waveCount) * sideOffset
+    const amplitudeScale = 1 + spreadAmount * u
+    const x = Math.sin((u - 0.5) * Math.PI * waveCount + waveOffset) * sideOffset * amplitudeScale
     const y = THREE.MathUtils.lerp(-halfLength, halfLength, u)
     centerPoints.push(new THREE.Vector3(x, y, 0))
   }
@@ -137,11 +156,14 @@ function generateRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
   })
 }
 
-function generateLightningRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
+function generateLightningRibbonMesh(
+  params: EffectMeshParams,
+  liftDirection = 1
+): THREE.BufferGeometry {
   const { lengthSegments, widthSegments } = getSegmentCounts(params)
   const halfLength = params.length / 2
   const curveAmount = getCurveAmount(params)
-  const liftAmount = getTopCurveAmount(params)
+  const liftAmount = getTopCurveAmount(params) * liftDirection
   const depthAmount = Math.max(0, params.spread)
   const bendCount = Math.max(2, Math.round(params.waveCount * 2))
   const sideAmplitude = params.length * THREE.MathUtils.lerp(0.03, 0.22, curveAmount)
@@ -182,6 +204,16 @@ function generateLightningRibbonMesh(params: EffectMeshParams): THREE.BufferGeom
     vertex.addScaledVector(twistedNormalDirection, Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount)
     return vertex
   })
+}
+
+export function generateDoubleSidedLightningRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
+  const frontGeometry = generateLightningRibbonMesh(params, 1)
+  const backGeometry = generateLightningRibbonMesh(params, -1)
+  const combinedGeometry = combineOppositeFacingGeometries(frontGeometry, backGeometry)
+
+  frontGeometry.dispose()
+  backGeometry.dispose()
+  return combinedGeometry
 }
 
 function generateArcMesh(params: EffectMeshParams): THREE.BufferGeometry {
@@ -259,11 +291,14 @@ function generateSpiralMesh(params: EffectMeshParams): THREE.BufferGeometry {
   })
 }
 
-function generateRisingSpiralRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
+function generateRisingSpiralRibbonMesh(
+  params: EffectMeshParams,
+  liftDirection = 1
+): THREE.BufferGeometry {
   const { lengthSegments, widthSegments } = getSegmentCounts(params)
   const halfHeight = params.length / 2
   const curveAmount = getCurveAmount(params)
-  const liftAmount = getTopCurveAmount(params)
+  const liftAmount = getTopCurveAmount(params) * liftDirection
   const spreadAmount = Math.max(0, params.spread)
   const turns = Math.max(0.25, params.waveCount) * THREE.MathUtils.lerp(0.5, 1.5, curveAmount)
   const baseRadius = Math.max(params.thickness * 0.2, params.length * 0.025, 0.001)
@@ -296,11 +331,24 @@ function generateRisingSpiralRibbonMesh(params: EffectMeshParams): THREE.BufferG
   })
 }
 
-function generateCylinderSpiralRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
+export function generateDoubleSidedRisingSpiralRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
+  const frontGeometry = generateRisingSpiralRibbonMesh(params, 1)
+  const backGeometry = generateRisingSpiralRibbonMesh(params, -1)
+  const combinedGeometry = combineOppositeFacingGeometries(frontGeometry, backGeometry)
+
+  frontGeometry.dispose()
+  backGeometry.dispose()
+  return combinedGeometry
+}
+
+function generateCylinderSpiralRibbonMesh(
+  params: EffectMeshParams,
+  liftDirection = 1
+): THREE.BufferGeometry {
   const { lengthSegments, widthSegments } = getSegmentCounts(params)
   const halfHeight = params.length / 2
   const curveAmount = getCurveAmount(params)
-  const liftAmount = getTopCurveAmount(params)
+  const liftAmount = getTopCurveAmount(params) * liftDirection
   const spreadAmount = Math.max(0, params.spread)
   const turns = Math.max(0.25, params.waveCount)
   const baseRadius = Math.max(
@@ -334,6 +382,16 @@ function generateCylinderSpiralRibbonMesh(params: EffectMeshParams): THREE.Buffe
     vertex.addScaledVector(twistedNormalDirection, Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount)
     return vertex
   })
+}
+
+export function generateDoubleSidedCylinderSpiralRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
+  const frontGeometry = generateCylinderSpiralRibbonMesh(params, 1)
+  const backGeometry = generateCylinderSpiralRibbonMesh(params, -1)
+  const combinedGeometry = combineOppositeFacingGeometries(frontGeometry, backGeometry)
+
+  frontGeometry.dispose()
+  backGeometry.dispose()
+  return combinedGeometry
 }
 
 function generateBurstMesh(params: EffectMeshParams): THREE.BufferGeometry {
@@ -378,11 +436,15 @@ function generateFlatRingMesh(params: EffectMeshParams): THREE.BufferGeometry {
   const outerRadius = Math.max(params.length * 0.5, params.thickness, 0.001)
   const innerRadius = Math.max(outerRadius - params.thickness, 0.001)
   const liftAmount = getTopCurveAmount(params)
+  const spreadAmount = Math.max(0, params.spread)
 
   return createGridGeometry(radialSegments, widthSegments, (u, v) => {
     const angle = u * Math.PI * 2 + params.twist * Math.PI * v
     const radius = THREE.MathUtils.lerp(outerRadius, innerRadius, v)
-    const z = Math.sin(Math.PI * v) * params.thickness * 0.5 * liftAmount
+    const innerEdgeProfile = v
+    const z =
+      Math.sin(Math.PI * v) * params.thickness * 0.5 * liftAmount +
+      innerEdgeProfile * params.thickness * spreadAmount
 
     return new THREE.Vector3(
       Math.cos(angle) * radius,
@@ -400,7 +462,7 @@ function generateSphereMesh(params: EffectMeshParams): THREE.BufferGeometry {
 
   const geometry = createGridGeometry(latitudeSegments, longitudeSegments, (u, v) => {
     const theta = u * maxTheta
-    const phi = -v * Math.PI * 2
+    const phi = -v * Math.PI * 2 + (1 - u) * params.twist * Math.PI
     return getSphericalVertex(radius, theta, phi)
   })
 
@@ -414,7 +476,7 @@ function generateHemisphereMesh(params: EffectMeshParams): THREE.BufferGeometry 
 
   const geometry = createGridGeometry(latitudeSegments, longitudeSegments, (u, v) => {
     const theta = u * Math.PI * 0.5
-    const phi = -v * Math.PI * 2
+    const phi = -v * Math.PI * 2 + (1 - u) * params.twist * Math.PI
     return getSphericalVertex(radius, theta, phi)
   })
 
@@ -438,20 +500,25 @@ function generateZHemisphereMesh(params: EffectMeshParams): THREE.BufferGeometry
   return geometry
 }
 
-function generateOpenCylinderMesh(params: EffectMeshParams): THREE.BufferGeometry {
+function generateOpenCylinderMesh(
+  params: EffectMeshParams,
+  liftDirection = 1
+): THREE.BufferGeometry {
   const heightSegments = Math.max(1, Math.floor(params.divisions))
   const radialSegments = Math.max(8, Math.floor(params.widthDivisions * 4))
   const sizeScale = 2
   const halfHeight = (params.length * sizeScale) / 2
   const tubeRadius = Math.max(params.thickness * sizeScale * 0.5, 0.001)
   const curveAmount = getCurveAmount(params)
+  const liftAmount = getTopCurveAmount(params)
   const spreadAmount = Math.max(0, params.spread)
 
   return createGridGeometry(heightSegments, radialSegments, (u, v) => {
     const phi = v * Math.PI * 2 + u * params.twist * Math.PI
     const sideCurveProfile = Math.sin(Math.PI * u)
     const topScale = THREE.MathUtils.lerp(1, 1 + spreadAmount, u)
-    const currentRadius = tubeRadius * topScale * (1 + curveAmount * sideCurveProfile * 2)
+    const radiusScale = 1 + (curveAmount + liftAmount * liftDirection) * sideCurveProfile * 2
+    const currentRadius = Math.max(tubeRadius * topScale * radiusScale, 0.001)
 
     return new THREE.Vector3(
       Math.cos(phi) * currentRadius,
@@ -461,11 +528,23 @@ function generateOpenCylinderMesh(params: EffectMeshParams): THREE.BufferGeometr
   })
 }
 
+export function generateDoubleSidedOpenCylinderMesh(params: EffectMeshParams): THREE.BufferGeometry {
+  const frontGeometry = generateOpenCylinderMesh(params, 1)
+  const backGeometry = generateOpenCylinderMesh(params, -1)
+  const combinedGeometry = combineOppositeFacingGeometries(frontGeometry, backGeometry)
+
+  frontGeometry.dispose()
+  backGeometry.dispose()
+  return combinedGeometry
+}
+
 function generateBeamDomeMesh(params: EffectMeshParams): THREE.BufferGeometry {
   const capSegments = Math.max(1, Math.floor(params.divisions))
   const cylinderSegments = Math.max(1, Math.floor(params.cylinderDivisions ?? 2))
   const radialSegments = Math.max(8, Math.floor(params.widthDivisions * 4))
   const radius = Math.max(params.thickness * 0.5, 0.001)
+  const liftAmount = getTopCurveAmount(params)
+  const spreadAmount = Math.max(0, params.spread)
   const baseCylinderHeight = Math.max(params.length - radius, radius * 0.1)
   const cylinderScale = THREE.MathUtils.clamp(params.cylinderScale, 0, 1)
   const cylinderHeight = baseCylinderHeight * cylinderScale
@@ -485,13 +564,16 @@ function generateBeamDomeMesh(params: EffectMeshParams): THREE.BufferGeometry {
 
   const geometry = createGridGeometryFromURows(uRows, radialSegments, (u, v) => {
     const phi = v * Math.PI * 2
-    let currentRadius = radius
-    let y = THREE.MathUtils.lerp(bottomY, capBaseY, Math.min(u / cylinderRatio, 1))
+    const cylinderU = Math.min(u / cylinderRatio, 1)
+    const spreadProfile = Math.pow(1 - u, 2)
+    const liftProfile = Math.sin(Math.PI * u)
+    let currentRadius = radius * (1 + spreadAmount * spreadProfile + liftAmount * liftProfile * 2)
+    let y = THREE.MathUtils.lerp(bottomY, capBaseY, cylinderU)
 
     if (u > cylinderRatio) {
       const capU = (u - cylinderRatio) / Math.max(1 - cylinderRatio, 0.0001)
       const capAngle = capU * Math.PI * 0.5
-      currentRadius = Math.cos(capAngle) * radius
+      currentRadius = Math.cos(capAngle) * radius * (1 + spreadAmount * spreadProfile + liftAmount * liftProfile * 2)
       y = capBaseY + Math.sin(capAngle) * radius
     }
 
@@ -502,6 +584,7 @@ function generateBeamDomeMesh(params: EffectMeshParams): THREE.BufferGeometry {
     )
     vertex.y -= capTipY
     vertex.applyAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI * -0.5)
+    vertex.applyAxisAngle(new THREE.Vector3(0, 0, 1), (1 - u) * params.twist * Math.PI)
     return vertex
   })
 
@@ -567,6 +650,73 @@ function createGridGeometryFromURows(
   return geometry
 }
 
+function combineOppositeFacingGeometries(
+  frontGeometry: THREE.BufferGeometry,
+  backGeometry: THREE.BufferGeometry
+): THREE.BufferGeometry {
+  const frontPosition = frontGeometry.getAttribute('position')
+  const backPosition = backGeometry.getAttribute('position')
+  const frontUV = frontGeometry.getAttribute('uv')
+  const backUV = backGeometry.getAttribute('uv')
+  const frontIndex = frontGeometry.index
+  const backIndex = backGeometry.index
+  const positions: number[] = []
+  const uvs: number[] = []
+  const indices: number[] = []
+
+  for (let i = 0; i < frontPosition.count; i++) {
+    positions.push(frontPosition.getX(i), frontPosition.getY(i), frontPosition.getZ(i))
+
+    if (frontUV) {
+      uvs.push(frontUV.getX(i), frontUV.getY(i))
+    }
+  }
+
+  for (let i = 0; i < backPosition.count; i++) {
+    positions.push(backPosition.getX(i), backPosition.getY(i), backPosition.getZ(i))
+
+    if (backUV) {
+      uvs.push(backUV.getX(i), backUV.getY(i))
+    }
+  }
+
+  if (frontIndex) {
+    for (let i = 0; i < frontIndex.count; i++) {
+      indices.push(frontIndex.getX(i))
+    }
+  } else {
+    for (let i = 0; i < frontPosition.count; i++) {
+      indices.push(i)
+    }
+  }
+
+  const backVertexOffset = frontPosition.count
+  if (backIndex) {
+    for (let i = 0; i < backIndex.count; i += 3) {
+      indices.push(
+        backVertexOffset + backIndex.getX(i),
+        backVertexOffset + backIndex.getX(i + 2),
+        backVertexOffset + backIndex.getX(i + 1)
+      )
+    }
+  } else {
+    for (let i = 0; i < backPosition.count; i += 3) {
+      indices.push(backVertexOffset + i, backVertexOffset + i + 2, backVertexOffset + i + 1)
+    }
+  }
+
+  const combinedGeometry = new THREE.BufferGeometry()
+  combinedGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3))
+
+  if (frontUV && backUV) {
+    combinedGeometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2))
+  }
+
+  combinedGeometry.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1))
+  combinedGeometry.computeVertexNormals()
+  return combinedGeometry
+}
+
 function rotateUVs180(geometry: THREE.BufferGeometry): void {
   const uvAttribute = geometry.getAttribute('uv')
   if (!uvAttribute) return
@@ -593,13 +743,13 @@ function getSphericalSegmentCounts(params: EffectMeshParams): {
   longitudeSegments: number
 } {
   return {
-    latitudeSegments: Math.max(4, Math.floor(params.divisions)),
+    latitudeSegments: Math.max(2, Math.floor(params.divisions)),
     longitudeSegments: Math.max(8, Math.floor(params.widthDivisions * 4)),
   }
 }
 
 function getSphericalRadius(params: EffectMeshParams): number {
-  return Math.max(params.length * 0.5, params.thickness * 0.5, 0.001)
+  return Math.max(params.length * 0.5, 0.001)
 }
 
 function getSphericalVertex(radius: number, theta: number, phi: number): THREE.Vector3 {
@@ -629,6 +779,10 @@ function getTaperedWidth(params: EffectMeshParams, u: number): number {
 function getSignedNoise(index: number, channelSeed: number, shapeSeed: number): number {
   const value = Math.sin((index + 1) * channelSeed + shapeSeed * 12.9898) * 43758.5453123
   return (value - Math.floor(value)) * 2 - 1
+}
+
+function getSeededPhaseOffset(seed: number): number {
+  return Math.floor(seed) * 0.17320508075688773
 }
 
 function getPolylineTangent(points: THREE.Vector3[], index: number): THREE.Vector3 {

@@ -262,6 +262,49 @@ const MESH_TYPE_OPTION_VALUES: ReadonlyArray<EffectMeshType> = [
   'beamDome',
 ]
 
+type EffectControlKey =
+  | 'curve'
+  | 'topCurve'
+  | 'taper'
+  | 'spread'
+  | 'twist'
+  | 'waveCount'
+  | 'seed'
+  | 'yClip'
+
+const VISIBLE_EFFECT_CONTROLS: Record<EffectMeshType, readonly EffectControlKey[]> = {
+  slash: ['curve', 'topCurve', 'taper', 'spread', 'twist'],
+  arc: ['curve', 'topCurve', 'taper', 'spread'],
+  openCylinder: ['curve', 'topCurve', 'spread', 'twist'],
+  ribbon: ['curve', 'topCurve', 'taper', 'spread', 'twist', 'waveCount', 'seed'],
+  lightningRibbon: ['curve', 'topCurve', 'taper', 'spread', 'twist', 'waveCount', 'seed'],
+  risingSpiralRibbon: ['curve', 'topCurve', 'taper', 'spread', 'twist', 'waveCount'],
+  cylinderSpiralRibbon: ['curve', 'topCurve', 'taper', 'spread', 'twist', 'waveCount'],
+  plane: ['topCurve', 'taper'],
+  flatRing: ['topCurve', 'spread', 'twist'],
+  sphere: ['twist', 'yClip'],
+  hemisphere: ['twist'],
+  zHemisphere: ['yClip'],
+  beamDome: ['topCurve', 'spread', 'twist'],
+  spiral: ['curve', 'topCurve', 'taper'],
+  burst: ['curve', 'topCurve', 'taper'],
+}
+
+const DOUBLE_SIDED_MESH_TYPES: ReadonlySet<EffectMeshType> = new Set([
+  'slash',
+  'lightningRibbon',
+  'risingSpiralRibbon',
+  'cylinderSpiralRibbon',
+  'openCylinder',
+])
+
+const HIDDEN_MIRROR_Z_MESH_TYPES: ReadonlySet<EffectMeshType> = new Set([
+  'sphere',
+  'hemisphere',
+  'zHemisphere',
+  'beamDome',
+])
+
 interface ControlPanelProps {
   meshType: EffectMeshType
   setMeshType: (value: EffectMeshType) => void
@@ -281,6 +324,8 @@ interface ControlPanelProps {
   setUVRotation: (value: number) => void
   mirrorZ: boolean
   setMirrorZ: (value: boolean) => void
+  doubleSided: boolean
+  setDoubleSided: (value: boolean) => void
   showPolygonCount: boolean
   setShowPolygonCount: (value: boolean) => void
   showPivot: boolean
@@ -329,6 +374,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   setUVRotation,
   mirrorZ,
   setMirrorZ,
+  doubleSided,
+  setDoubleSided,
   showPolygonCount,
   setShowPolygonCount,
   showPivot,
@@ -367,6 +414,18 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const handleChange = (key: keyof ControlPanelProps['params'], value: number) => {
     setParams({ ...params, [key]: value })
   }
+  const isEffectControlVisible = (key: EffectControlKey) =>
+    VISIBLE_EFFECT_CONTROLS[meshType].includes(key)
+  const isSphericalMesh =
+    meshType === 'sphere' || meshType === 'hemisphere' || meshType === 'zHemisphere'
+  const showsDoubleSided = DOUBLE_SIDED_MESH_TYPES.has(meshType)
+  const showsMirrorZ = !showsDoubleSided && !HIDDEN_MIRROR_Z_MESH_TYPES.has(meshType)
+  const divisionsMin =
+    isSphericalMesh || meshType === 'beamDome'
+      ? '2'
+      : meshType === 'slash' || meshType === 'openCylinder' || meshType === 'plane'
+        ? '1'
+        : '3'
 
   const handleMeshTypeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const nextMeshType = event.target.value as EffectMeshType
@@ -375,90 +434,105 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     if (nextMeshType === 'slash') {
       setParams(SLASH_DEFAULT_PARAMS)
       setMirrorZ(false)
+      setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'ribbon') {
       setParams(RIBBON_DEFAULT_PARAMS)
       setMirrorZ(false)
+      setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'arc') {
       setParams(ARC_DEFAULT_PARAMS)
       setMirrorZ(true)
+      setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'lightningRibbon') {
       setParams(LIGHTNING_RIBBON_DEFAULT_PARAMS)
       setMirrorZ(false)
+      setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'spiral') {
       setParams(SPIRAL_DEFAULT_PARAMS)
       setMirrorZ(false)
+      setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'risingSpiralRibbon') {
       setParams(RISING_SPIRAL_RIBBON_DEFAULT_PARAMS)
       setMirrorZ(false)
+      setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'cylinderSpiralRibbon') {
       setParams(CYLINDER_SPIRAL_RIBBON_DEFAULT_PARAMS)
       setMirrorZ(false)
+      setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'burst') {
       setParams(BURST_DEFAULT_PARAMS)
       setMirrorZ(false)
+      setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'plane') {
       setParams(PLANE_DEFAULT_PARAMS)
       setMirrorZ(false)
+      setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'flatRing') {
       setParams(FLAT_RING_DEFAULT_PARAMS)
       setMirrorZ(false)
+      setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'sphere') {
       setParams(SPHERE_DEFAULT_PARAMS)
       setMirrorZ(false)
+      setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'hemisphere') {
       setParams(HEMISPHERE_DEFAULT_PARAMS)
       setMirrorZ(false)
+      setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'zHemisphere') {
       setParams(Z_HEMISPHERE_DEFAULT_PARAMS)
       setMirrorZ(false)
+      setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'openCylinder') {
       setParams(OPEN_CYLINDER_DEFAULT_PARAMS)
       setMirrorZ(false)
+      setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'beamDome') {
       setParams(BEAM_DOME_DEFAULT_PARAMS)
       setMirrorZ(false)
+      setDoubleSided(false)
     }
   }
 
@@ -648,7 +722,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           break
         case 'obj':
           await meshExporter.exportAsOBJ(mesh, fileName, {
-            mergeSharedPositions: mirrorZ || meshType === 'beamDome',
+            mergeSharedPositions: mirrorZ || doubleSided || meshType === 'beamDome',
           })
           break
       }
@@ -703,17 +777,33 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       <div className="control-group">
-        <label htmlFor="divisions">{t.divisions}</label>
+        <label htmlFor="divisions">{meshType === 'beamDome' ? t.hemisphereDivisions : t.divisions}</label>
         <input
           id="divisions"
           type="range"
-          min={meshType === 'openCylinder' || meshType === 'plane' ? '1' : '3'}
+          min={divisionsMin}
           max="64"
           value={params.divisions}
           onChange={(e) => handleChange('divisions', parseInt(e.target.value))}
         />
         <span className="value">{params.divisions}</span>
       </div>
+
+      {meshType === 'beamDome' && (
+        <div className="control-group">
+          <label htmlFor="cylinderDivisions">{t.cylinderDivisions}</label>
+          <input
+            id="cylinderDivisions"
+            type="range"
+            min="1"
+            max="64"
+            step="1"
+            value={params.cylinderDivisions ?? 2}
+            onChange={(e) => handleChange('cylinderDivisions', parseInt(e.target.value))}
+          />
+          <span className="value">{params.cylinderDivisions ?? 2}</span>
+        </div>
+      )}
 
       <div className="control-group">
         <label htmlFor="widthDivisions">{t.widthDivisions}</label>
@@ -728,22 +818,24 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         <span className="value">{params.widthDivisions}</span>
       </div>
 
-      <div className="control-group">
-        <label htmlFor="thickness">{t.thickness}</label>
-        <input
-          id="thickness"
-          type="range"
-          min="0.1"
-          max="2"
-          step="0.1"
-          value={params.thickness}
-          onChange={(e) => handleChange('thickness', parseFloat(e.target.value))}
-        />
-        <span className="value">{params.thickness.toFixed(1)}</span>
-      </div>
+      {!isSphericalMesh && (
+        <div className="control-group">
+          <label htmlFor="thickness">{t.thickness}</label>
+          <input
+            id="thickness"
+            type="range"
+            min="0.1"
+            max="2"
+            step="0.1"
+            value={params.thickness}
+            onChange={(e) => handleChange('thickness', parseFloat(e.target.value))}
+          />
+          <span className="value">{params.thickness.toFixed(1)}</span>
+        </div>
+      )}
 
       <div className="control-group">
-        <label htmlFor="length">{t.length}</label>
+        <label htmlFor="length">{isSphericalMesh ? t.size : t.length}</label>
         <input
           id="length"
           type="range"
@@ -756,91 +848,103 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         <span className="value">{params.length.toFixed(1)}</span>
       </div>
 
-      <div className="control-group">
-        <label htmlFor="curve">{t.curve}</label>
-        <input
-          id="curve"
-          type="range"
-          min="0"
-          max="2"
-          step="0.1"
-          value={params.curve}
-          onChange={(e) => handleChange('curve', parseFloat(e.target.value))}
-        />
-        <span className="value">{params.curve.toFixed(1)}</span>
-      </div>
+      {isEffectControlVisible('curve') && (
+        <div className="control-group">
+          <label htmlFor="curve">{t.curve}</label>
+          <input
+            id="curve"
+            type="range"
+            min="0"
+            max="2"
+            step="0.1"
+            value={params.curve}
+            onChange={(e) => handleChange('curve', parseFloat(e.target.value))}
+          />
+          <span className="value">{params.curve.toFixed(1)}</span>
+        </div>
+      )}
 
-      <div className="control-group">
-        <label htmlFor="topCurve">{t.topCurve}</label>
-        <input
-          id="topCurve"
-          type="range"
-          min="0"
-          max="2"
-          step="0.1"
-          value={params.topCurve}
-          onChange={(e) => handleChange('topCurve', parseFloat(e.target.value))}
-        />
-        <span className="value">{params.topCurve.toFixed(1)}</span>
-      </div>
+      {isEffectControlVisible('topCurve') && (
+        <div className="control-group">
+          <label htmlFor="topCurve">{t.topCurve}</label>
+          <input
+            id="topCurve"
+            type="range"
+            min="0"
+            max="2"
+            step="0.1"
+            value={params.topCurve}
+            onChange={(e) => handleChange('topCurve', parseFloat(e.target.value))}
+          />
+          <span className="value">{params.topCurve.toFixed(1)}</span>
+        </div>
+      )}
 
-      <div className="control-group">
-        <label htmlFor="taper">{t.taper}</label>
-        <input
-          id="taper"
-          type="range"
-          min="0"
-          max="1"
-          step="0.05"
-          value={params.taper}
-          onChange={(e) => handleChange('taper', parseFloat(e.target.value))}
-        />
-        <span className="value">{params.taper.toFixed(2)}</span>
-      </div>
+      {isEffectControlVisible('taper') && (
+        <div className="control-group">
+          <label htmlFor="taper">{t.taper}</label>
+          <input
+            id="taper"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={params.taper}
+            onChange={(e) => handleChange('taper', parseFloat(e.target.value))}
+          />
+          <span className="value">{params.taper.toFixed(2)}</span>
+        </div>
+      )}
 
-      <div className="control-group">
-        <label htmlFor="spread">{t.spread}</label>
-        <input
-          id="spread"
-          type="range"
-          min="0"
-          max="3"
-          step="0.05"
-          value={params.spread}
-          onChange={(e) => handleChange('spread', parseFloat(e.target.value))}
-        />
-        <span className="value">{params.spread.toFixed(2)}</span>
-      </div>
+      {isEffectControlVisible('spread') && (
+        <div className="control-group">
+          <label htmlFor="spread">{t.spread}</label>
+          <input
+            id="spread"
+            type="range"
+            min="0"
+            max="3"
+            step="0.05"
+            value={params.spread}
+            onChange={(e) => handleChange('spread', parseFloat(e.target.value))}
+          />
+          <span className="value">{params.spread.toFixed(2)}</span>
+        </div>
+      )}
 
-      <div className="control-group">
-        <label htmlFor="twist">{t.twist}</label>
-        <input
-          id="twist"
-          type="range"
-          min="-2"
-          max="2"
-          step="0.1"
-          value={params.twist}
-          onChange={(e) => handleChange('twist', parseFloat(e.target.value))}
-        />
-        <span className="value">{params.twist.toFixed(1)}</span>
-      </div>
+      {isEffectControlVisible('twist') && (
+        <div className="control-group">
+          <label htmlFor="twist">{t.twist}</label>
+          <input
+            id="twist"
+            type="range"
+            min="-2"
+            max="2"
+            step="0.1"
+            value={params.twist}
+            onChange={(e) => handleChange('twist', parseFloat(e.target.value))}
+          />
+          <span className="value">{params.twist.toFixed(1)}</span>
+        </div>
+      )}
 
-      <div className="control-group">
-        <label htmlFor="waveCount">{t.waveCount}</label>
-        <input
-          id="waveCount"
-          type="range"
-          min="1"
-          max="8"
-          step="0.25"
-          value={params.waveCount}
-          onChange={(e) => handleChange('waveCount', parseFloat(e.target.value))}
-        />
-        <span className="value">{params.waveCount.toFixed(2)}</span>
-      </div>
+      {isEffectControlVisible('waveCount') && (
+        <div className="control-group">
+          <label htmlFor="waveCount">{t.waveCount}</label>
+          <input
+            id="waveCount"
+            type="range"
+            min="1"
+            max="8"
+            step="0.25"
+            value={params.waveCount}
+            onChange={(e) => handleChange('waveCount', parseFloat(e.target.value))}
+          />
+          <span className="value">{params.waveCount.toFixed(2)}</span>
+        </div>
+      )}
 
-      {meshType === 'lightningRibbon' && (
+      {isEffectControlVisible('seed') && (
         <div className="control-group">
           <label htmlFor="seed">{t.seed}</label>
           <input
@@ -859,20 +963,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       {meshType === 'beamDome' && (
         <>
           <div className="control-group">
-            <label htmlFor="cylinderDivisions">{t.cylinderDivisions}</label>
-            <input
-              id="cylinderDivisions"
-              type="range"
-              min="1"
-              max="64"
-              step="1"
-              value={params.cylinderDivisions ?? 2}
-              onChange={(e) => handleChange('cylinderDivisions', parseInt(e.target.value))}
-            />
-            <span className="value">{params.cylinderDivisions ?? 2}</span>
-          </div>
-
-          <div className="control-group">
             <label htmlFor="cylinderScale">{t.cylinderScale}</label>
             <input
               id="cylinderScale"
@@ -888,7 +978,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </>
       )}
 
-      {(meshType === 'sphere' || meshType === 'zHemisphere') && (
+      {isEffectControlVisible('yClip') && (
         <div className="control-group">
           <label htmlFor="yClip">{t.yClip}</label>
           <input
@@ -915,16 +1005,31 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </button>
       </div>
 
-      <div className="control-group toggle-row">
-        <span>{t.mirrorZ}</span>
-        <button
-          type="button"
-          className={`toggle-btn ${mirrorZ ? 'active' : ''}`}
-          onClick={() => setMirrorZ(!mirrorZ)}
-        >
-          {mirrorZ ? t.on : t.off}
-        </button>
-      </div>
+      {showsDoubleSided && (
+        <div className="control-group toggle-row">
+          <span>{t.doubleSided}</span>
+          <button
+            type="button"
+            className={`toggle-btn ${doubleSided ? 'active' : ''}`}
+            onClick={() => setDoubleSided(!doubleSided)}
+          >
+            {doubleSided ? t.on : t.off}
+          </button>
+        </div>
+      )}
+
+      {showsMirrorZ && (
+        <div className="control-group toggle-row">
+          <span>{t.mirrorZ}</span>
+          <button
+            type="button"
+            className={`toggle-btn ${mirrorZ ? 'active' : ''}`}
+            onClick={() => setMirrorZ(!mirrorZ)}
+          >
+            {mirrorZ ? t.on : t.off}
+          </button>
+        </div>
+      )}
 
       <div className="control-group toggle-row">
         <span>{t.showUV}</span>

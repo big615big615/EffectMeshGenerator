@@ -53,6 +53,7 @@ const App: React.FC = () => {
   const [uvScrollResetVersion, setUVScrollResetVersion] = useState(0)
   const [uvRotation, setUVRotation] = useState(0)
   const [mirrorZ, setMirrorZ] = useState(false)
+  const [doubleSided, setDoubleSided] = useState(false)
   const [showPolygonCount, setShowPolygonCount] = useState(false)
   const [showPivot, setShowPivot] = useState(false)
   const [pivot, setPivot] = useState<PivotParams>({ x: 0, y: 0, z: 0 })
@@ -96,6 +97,7 @@ const App: React.FC = () => {
           uvScrollResetVersion={uvScrollResetVersion}
           uvRotation={uvRotation}
           mirrorZ={mirrorZ}
+          doubleSided={doubleSided}
           showPolygonCount={showPolygonCount}
           showPivot={showPivot}
           pivot={pivot}
@@ -126,6 +128,8 @@ const App: React.FC = () => {
           setUVRotation={setUVRotation}
           mirrorZ={mirrorZ}
           setMirrorZ={setMirrorZ}
+          doubleSided={doubleSided}
+          setDoubleSided={setDoubleSided}
           showPolygonCount={showPolygonCount}
           setShowPolygonCount={setShowPolygonCount}
           showPivot={showPivot}

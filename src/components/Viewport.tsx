@@ -2,6 +2,11 @@ import React, { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import {
+  generateDoubleSidedCylinderSpiralRibbonMesh,
+  generateDoubleSidedLightningRibbonMesh,
+  generateDoubleSidedOpenCylinderMesh,
+  generateDoubleSidedRisingSpiralRibbonMesh,
+  generateDoubleSidedSlashMesh,
   generateEffectMesh,
   type EffectMeshParams,
   type EffectMeshType,
@@ -32,6 +37,7 @@ interface ViewportProps {
   uvScrollResetVersion: number
   uvRotation: number
   mirrorZ: boolean
+  doubleSided: boolean
   showPolygonCount: boolean
   showPivot: boolean
   pivot: {
@@ -64,6 +70,7 @@ const Viewport: React.FC<ViewportProps> = ({
   uvScrollResetVersion,
   uvRotation,
   mirrorZ,
+  doubleSided,
   showPolygonCount,
   showPivot,
   pivot,
@@ -140,7 +147,8 @@ const Viewport: React.FC<ViewportProps> = ({
     scene.add(directionalLight)
 
     // Initial mesh
-    const geometry = createEffectGeometry(meshType, params, uvRotation, mirrorZ, pivot)
+    const geometry = createEffectGeometry(meshType, params, uvRotation, mirrorZ, doubleSided, pivot)
+    const useDoubleSidedGeometry = shouldUseDoubleSidedGeometry(meshType, doubleSided)
     setPolygonCount(getGeometryPolygonCount(geometry))
     const checkerTexture = createCheckerTexture(8, 8)
     checkerTextureRef.current = checkerTexture
@@ -164,6 +172,7 @@ const Viewport: React.FC<ViewportProps> = ({
     )
     mesh.scale.set(scale.x, scale.y, scale.z)
     const backMesh = new THREE.Mesh(geometry, backMaterial)
+    backMesh.visible = !useDoubleSidedGeometry
     mesh.add(backMesh)
     const meshWireframe = createMeshWireframe(geometry)
     meshWireframe.visible = wireframe
@@ -313,11 +322,13 @@ const Viewport: React.FC<ViewportProps> = ({
     if (!sceneRef.current || !meshRef.current) return
 
     const oldGeometry = meshRef.current.geometry
-    const newGeometry = createEffectGeometry(meshType, params, uvRotation, mirrorZ, pivot)
+    const newGeometry = createEffectGeometry(meshType, params, uvRotation, mirrorZ, doubleSided, pivot)
+    const useDoubleSidedGeometry = shouldUseDoubleSidedGeometry(meshType, doubleSided)
     setPolygonCount(getGeometryPolygonCount(newGeometry))
     meshRef.current.geometry = newGeometry
     if (backMeshRef.current) {
       backMeshRef.current.geometry = newGeometry
+      backMeshRef.current.visible = !useDoubleSidedGeometry
     }
     meshRef.current.position.set(pivot.x, pivot.y, pivot.z)
     if (meshWireframeRef.current) {
@@ -337,7 +348,7 @@ const Viewport: React.FC<ViewportProps> = ({
       uvWireframeRef.current = newUVWireframe
       uvSceneRef.current?.add(newUVWireframe)
     }
-  }, [meshType, params, uvRotation, mirrorZ, pivot])
+  }, [meshType, params, uvRotation, mirrorZ, doubleSided, pivot])
 
   useEffect(() => {
     if (!pivotMarkerRef.current) return
@@ -610,9 +621,12 @@ const Viewport: React.FC<ViewportProps> = ({
     meshParams: EffectMeshParams,
     rotation: number,
     shouldMirrorZ: boolean,
+    shouldDoubleSide: boolean,
     pivotPosition: ViewportProps['pivot']
   ): THREE.BufferGeometry => {
-    const geometry = generateEffectMesh(selectedMeshType, meshParams)
+    const geometry = shouldUseDoubleSidedGeometry(selectedMeshType, shouldDoubleSide)
+      ? createDoubleSidedEffectGeometry(selectedMeshType, meshParams)
+      : generateEffectMesh(selectedMeshType, meshParams)
     applyUVRotation(geometry, rotation + SLASH_UV_ROTATION_OFFSET)
 
     if (shouldMirrorZ) {
@@ -624,6 +638,42 @@ const Viewport: React.FC<ViewportProps> = ({
 
     geometry.translate(-pivotPosition.x, -pivotPosition.y, -pivotPosition.z)
     return geometry
+  }
+
+  const shouldUseDoubleSidedGeometry = (
+    selectedMeshType: EffectMeshType,
+    shouldDoubleSide: boolean
+  ): boolean =>
+    (
+      selectedMeshType === 'lightningRibbon' ||
+      selectedMeshType === 'slash' ||
+      selectedMeshType === 'risingSpiralRibbon' ||
+      selectedMeshType === 'cylinderSpiralRibbon' ||
+      selectedMeshType === 'openCylinder'
+    ) &&
+    shouldDoubleSide
+
+  const createDoubleSidedEffectGeometry = (
+    selectedMeshType: EffectMeshType,
+    meshParams: EffectMeshParams
+  ): THREE.BufferGeometry => {
+    if (selectedMeshType === 'slash') {
+      return generateDoubleSidedSlashMesh(meshParams)
+    }
+
+    if (selectedMeshType === 'lightningRibbon') {
+      return generateDoubleSidedLightningRibbonMesh(meshParams)
+    }
+
+    if (selectedMeshType === 'openCylinder') {
+      return generateDoubleSidedOpenCylinderMesh(meshParams)
+    }
+
+    if (selectedMeshType === 'cylinderSpiralRibbon') {
+      return generateDoubleSidedCylinderSpiralRibbonMesh(meshParams)
+    }
+
+    return generateDoubleSidedRisingSpiralRibbonMesh(meshParams)
   }
 
   const getGeometryPolygonCount = (geometry: THREE.BufferGeometry): number => {

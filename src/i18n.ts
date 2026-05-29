@@ -11,9 +11,11 @@ export interface UiText {
   panelTitle: string
   meshType: string
   divisions: string
+  hemisphereDivisions: string
   widthDivisions: string
   thickness: string
   length: string
+  size: string
   curve: string
   topCurve: string
   taper: string
@@ -34,6 +36,7 @@ export interface UiText {
   checker: string
   uvRotate: string
   mirrorZ: string
+  doubleSided: string
   polygonCount: string
   show: string
   on: string
@@ -104,9 +107,11 @@ export const uiText: Record<Language, UiText> = {
     panelTitle: 'メッシュ設定',
     meshType: 'メッシュタイプ',
     divisions: '分割数 X',
+    hemisphereDivisions: '分割数/半球',
     widthDivisions: '分割数 Y',
     thickness: '幅',
     length: '長さ',
+    size: '大きさ',
     curve: 'カーブ',
     topCurve: 'ふくらみ',
     taper: 'テーパー',
@@ -114,7 +119,7 @@ export const uiText: Record<Language, UiText> = {
     twist: 'ねじれ',
     waveCount: '波数',
     seed: 'シード',
-    cylinderDivisions: '円柱分割数',
+    cylinderDivisions: '分割数/円柱',
     cylinderScale: '円柱スケール',
     yClip: 'Yクリップ',
     wireframe: 'ワイヤーフレーム',
@@ -127,6 +132,7 @@ export const uiText: Record<Language, UiText> = {
     checker: 'チェッカー',
     uvRotate: 'UV回転',
     mirrorZ: 'Zミラー',
+    doubleSided: '両面',
     polygonCount: 'ポリゴン数',
     show: '表示',
     on: 'オン',
@@ -173,9 +179,11 @@ export const uiText: Record<Language, UiText> = {
     panelTitle: 'Mesh Settings',
     meshType: 'Mesh Type',
     divisions: 'Divisions X',
+    hemisphereDivisions: 'Divisions / Hemisphere',
     widthDivisions: 'Divisions Y',
     thickness: 'Width',
     length: 'Length',
+    size: 'Size',
     curve: 'Curve',
     topCurve: 'Bulge',
     taper: 'Taper',
@@ -183,7 +191,7 @@ export const uiText: Record<Language, UiText> = {
     twist: 'Twist',
     waveCount: 'Wave Count',
     seed: 'Seed',
-    cylinderDivisions: 'Cylinder Divisions',
+    cylinderDivisions: 'Divisions / Cylinder',
     cylinderScale: 'Cylinder Scale',
     yClip: 'Y Clip',
     wireframe: 'Wireframe',
@@ -196,6 +204,7 @@ export const uiText: Record<Language, UiText> = {
     checker: 'Checker',
     uvRotate: 'UV Rotate',
     mirrorZ: 'Mirror Z',
+    doubleSided: 'Double Sided',
     polygonCount: 'Polygon Count',
     show: 'Show',
     on: 'ON',
