@@ -39,6 +39,7 @@ const App: React.FC = () => {
     curve: 0.5,
     topCurve: 0,
     taper: 0,
+    endTaper: 0,
     spread: 0,
     twist: 0,
     waveCount: 1,

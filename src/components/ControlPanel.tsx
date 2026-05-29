@@ -439,6 +439,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const handleChange = (key: keyof ControlPanelProps['params'], value: number) => {
     setParams({ ...params, [key]: value })
   }
+  const applyMeshParams = (nextParams: EffectMeshParams) => {
+    setParams({ ...nextParams, endTaper: nextParams.endTaper ?? nextParams.taper })
+  }
   const isEffectControlVisible = (key: EffectControlKey) =>
     VISIBLE_EFFECT_CONTROLS[meshType].includes(key)
   const isSphericalMesh =
@@ -457,112 +460,112 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     setMeshType(nextMeshType)
 
     if (nextMeshType === 'slash') {
-      setParams(SLASH_DEFAULT_PARAMS)
+      applyMeshParams(SLASH_DEFAULT_PARAMS)
       setMirrorZ(false)
       setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'ribbon') {
-      setParams(RIBBON_DEFAULT_PARAMS)
+      applyMeshParams(RIBBON_DEFAULT_PARAMS)
       setMirrorZ(false)
       setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'arc') {
-      setParams(ARC_DEFAULT_PARAMS)
+      applyMeshParams(ARC_DEFAULT_PARAMS)
       setMirrorZ(true)
       setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'arcRibbon') {
-      setParams(ARC_RIBBON_DEFAULT_PARAMS)
+      applyMeshParams(ARC_RIBBON_DEFAULT_PARAMS)
       setMirrorZ(false)
       setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'lightningRibbon') {
-      setParams(LIGHTNING_RIBBON_DEFAULT_PARAMS)
+      applyMeshParams(LIGHTNING_RIBBON_DEFAULT_PARAMS)
       setMirrorZ(false)
       setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'spiral') {
-      setParams(SPIRAL_DEFAULT_PARAMS)
+      applyMeshParams(SPIRAL_DEFAULT_PARAMS)
       setMirrorZ(false)
       setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'risingSpiralRibbon') {
-      setParams(RISING_SPIRAL_RIBBON_DEFAULT_PARAMS)
+      applyMeshParams(RISING_SPIRAL_RIBBON_DEFAULT_PARAMS)
       setMirrorZ(false)
       setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'cylinderSpiralRibbon') {
-      setParams(CYLINDER_SPIRAL_RIBBON_DEFAULT_PARAMS)
+      applyMeshParams(CYLINDER_SPIRAL_RIBBON_DEFAULT_PARAMS)
       setMirrorZ(false)
       setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'burst') {
-      setParams(BURST_DEFAULT_PARAMS)
+      applyMeshParams(BURST_DEFAULT_PARAMS)
       setMirrorZ(false)
       setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'plane') {
-      setParams(PLANE_DEFAULT_PARAMS)
+      applyMeshParams(PLANE_DEFAULT_PARAMS)
       setMirrorZ(false)
       setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'flatRing') {
-      setParams(FLAT_RING_DEFAULT_PARAMS)
+      applyMeshParams(FLAT_RING_DEFAULT_PARAMS)
       setMirrorZ(false)
       setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'sphere') {
-      setParams(SPHERE_DEFAULT_PARAMS)
+      applyMeshParams(SPHERE_DEFAULT_PARAMS)
       setMirrorZ(false)
       setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'hemisphere') {
-      setParams(HEMISPHERE_DEFAULT_PARAMS)
+      applyMeshParams(HEMISPHERE_DEFAULT_PARAMS)
       setMirrorZ(false)
       setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'zHemisphere') {
-      setParams(Z_HEMISPHERE_DEFAULT_PARAMS)
+      applyMeshParams(Z_HEMISPHERE_DEFAULT_PARAMS)
       setMirrorZ(false)
       setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'openCylinder') {
-      setParams(OPEN_CYLINDER_DEFAULT_PARAMS)
+      applyMeshParams(OPEN_CYLINDER_DEFAULT_PARAMS)
       setMirrorZ(false)
       setDoubleSided(false)
       return
     }
 
     if (nextMeshType === 'beamDome') {
-      setParams(BEAM_DOME_DEFAULT_PARAMS)
+      applyMeshParams(BEAM_DOME_DEFAULT_PARAMS)
       setMirrorZ(false)
       setDoubleSided(false)
     }
@@ -922,7 +925,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
       {isEffectControlVisible('taper') && (
         <div className="control-group">
-          <label htmlFor="taper">{t.taper}</label>
+          <label htmlFor="taper">{t.taperStart}</label>
           <input
             id="taper"
             type="range"
@@ -933,6 +936,22 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             onChange={(e) => handleChange('taper', parseFloat(e.target.value))}
           />
           <span className="value">{params.taper.toFixed(2)}</span>
+        </div>
+      )}
+
+      {isEffectControlVisible('taper') && (
+        <div className="control-group">
+          <label htmlFor="endTaper">{t.taperEnd}</label>
+          <input
+            id="endTaper"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={params.endTaper ?? params.taper}
+            onChange={(e) => handleChange('endTaper', parseFloat(e.target.value))}
+          />
+          <span className="value">{(params.endTaper ?? params.taper).toFixed(2)}</span>
         </div>
       )}
 

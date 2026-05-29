@@ -8,6 +8,7 @@ export function generateSlashMesh(
   curve: number,
   topCurve: number,
   taper: number,
+  endTaper = taper,
   twist = 0,
   spread = 0,
   liftDirection = 1
@@ -21,6 +22,7 @@ export function generateSlashMesh(
   const sideArcAngle = THREE.MathUtils.clamp(curve / 2, 0, 1) * Math.PI
   const tubeAmount = THREE.MathUtils.clamp(topCurve / 2, 0, 1)
   const taperAmount = THREE.MathUtils.clamp(taper, 0, 1)
+  const endTaperAmount = THREE.MathUtils.clamp(endTaper, 0, 1)
   const spreadAmount = Math.max(0, spread)
 
   for (let i = 0; i <= lengthSegments; i++) {
@@ -49,10 +51,10 @@ export function generateSlashMesh(
     )
     const twistedWidthDirection = widthDirection.clone().applyQuaternion(twistRotation)
     const twistedNormalDirection = normalDirection.clone().applyQuaternion(twistRotation)
-    const taperProfile = Math.sin(Math.PI * u)
+    const taperProfile = getTaperProfile(u, taperAmount, endTaperAmount)
     const currentThickness =
       thickness *
-      THREE.MathUtils.lerp(1 - taperAmount, 1, taperProfile) *
+      taperProfile *
       (1 + spreadAmount * u)
     const tubeRadius = currentThickness / 2
 
@@ -95,6 +97,15 @@ export function generateSlashMesh(
   geometry.computeVertexNormals()
 
   return geometry
+}
+
+function getTaperProfile(u: number, startTaper: number, endTaper: number): number {
+  const startProfile = Math.sin(THREE.MathUtils.clamp(u * 2, 0, 1) * Math.PI * 0.5)
+  const endProfile = Math.sin(THREE.MathUtils.clamp((1 - u) * 2, 0, 1) * Math.PI * 0.5)
+  const startWidthScale = THREE.MathUtils.lerp(1 - startTaper, 1, startProfile)
+  const endWidthScale = THREE.MathUtils.lerp(1 - endTaper, 1, endProfile)
+
+  return Math.max(0.001, Math.min(startWidthScale, endWidthScale))
 }
 
 function getArcPoint(

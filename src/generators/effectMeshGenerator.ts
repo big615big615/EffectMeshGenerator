@@ -29,6 +29,7 @@ export interface EffectMeshParams {
   curve: number
   topCurve: number
   taper: number
+  endTaper?: number
   spread: number
   twist: number
   waveCount: number
@@ -118,6 +119,7 @@ function generateSlashEffectMesh(params: EffectMeshParams, liftDirection = 1): T
     params.curve,
     params.topCurve,
     params.taper,
+    params.endTaper,
     params.twist,
     params.spread,
     liftDirection
@@ -245,16 +247,14 @@ function generateArcMesh(params: EffectMeshParams): THREE.BufferGeometry {
   const arcAngle = curveAmount * Math.PI * 2
   const outerRadius = Math.max(params.length / arcAngle + 1, params.thickness, 0.001)
   const thicknessFillAmount = THREE.MathUtils.clamp((params.thickness - 0.1) / 1.9, 0, 1)
-  const taperAmount = THREE.MathUtils.clamp(params.taper, 0, 1)
+  const taperAmount = getMaxTaperAmount(params)
 
   return createGridGeometry(lengthSegments, widthSegments, (u, v) => {
     const angle = THREE.MathUtils.lerp(-arcAngle / 2, arcAngle / 2, u)
     const radialDirection = new THREE.Vector3(Math.sin(angle), Math.cos(angle), 0)
     const currentWidth = getTaperedWidth(params, u)
-    const endSharpnessProfile = Math.sin(Math.PI * u)
     const centerTaperProfile = 1 - taperAmount * 0.5
-    const arcTaperProfile =
-      THREE.MathUtils.lerp(1, endSharpnessProfile, taperAmount) * centerTaperProfile
+    const arcTaperProfile = getTaperProfile(params, u) * centerTaperProfile
     const radialWidth = THREE.MathUtils.lerp(currentWidth, outerRadius, thicknessFillAmount)
     const taperedRadialWidth = radialWidth * arcTaperProfile
     const currentRadius = Math.max(0, outerRadius - (1 - v) * taperedRadialWidth)
@@ -308,7 +308,7 @@ function generateArcRibbonMesh(params: EffectMeshParams, liftDirection = 1): THR
   const arcAngle = curveAmount * Math.PI * 2
   const outerRadius = Math.max(params.length / arcAngle + 1, params.thickness, 0.001)
   const thicknessFillAmount = THREE.MathUtils.clamp((params.thickness - 0.1) / 1.9, 0, 1)
-  const taperAmount = THREE.MathUtils.clamp(params.taper, 0, 1)
+  const taperAmount = getMaxTaperAmount(params)
 
   return createGridGeometry(lengthSegments, widthSegments, (u, v) => {
     const angle = THREE.MathUtils.lerp(-arcAngle / 2, arcAngle / 2, u)
@@ -320,10 +320,8 @@ function generateArcRibbonMesh(params: EffectMeshParams, liftDirection = 1): THR
       (u - 0.5) * Math.PI * params.twist
     )
     const currentWidth = getTaperedWidth(params, u)
-    const endSharpnessProfile = Math.sin(Math.PI * u)
     const centerTaperProfile = 1 - taperAmount * 0.5
-    const arcTaperProfile =
-      THREE.MathUtils.lerp(1, endSharpnessProfile, taperAmount) * centerTaperProfile
+    const arcTaperProfile = getTaperProfile(params, u) * centerTaperProfile
     const radialWidth = THREE.MathUtils.lerp(currentWidth, outerRadius, thicknessFillAmount)
     const taperedRadialWidth = radialWidth * arcTaperProfile
     const centerRadius = Math.max(0, outerRadius - taperedRadialWidth * 0.5)
@@ -860,9 +858,25 @@ function getTopCurveAmount(params: EffectMeshParams): number {
 }
 
 function getTaperedWidth(params: EffectMeshParams, u: number): number {
-  const taperAmount = THREE.MathUtils.clamp(params.taper, 0, 1)
-  const taperProfile = Math.sin(Math.PI * u)
-  return params.thickness * THREE.MathUtils.lerp(1 - taperAmount, 1, taperProfile)
+  return params.thickness * getTaperProfile(params, u)
+}
+
+function getTaperProfile(params: EffectMeshParams, u: number): number {
+  const startTaper = THREE.MathUtils.clamp(params.taper, 0, 1)
+  const endTaper = THREE.MathUtils.clamp(params.endTaper ?? params.taper, 0, 1)
+  const startProfile = Math.sin(THREE.MathUtils.clamp(u * 2, 0, 1) * Math.PI * 0.5)
+  const endProfile = Math.sin(THREE.MathUtils.clamp((1 - u) * 2, 0, 1) * Math.PI * 0.5)
+  const startWidthScale = THREE.MathUtils.lerp(1 - startTaper, 1, startProfile)
+  const endWidthScale = THREE.MathUtils.lerp(1 - endTaper, 1, endProfile)
+
+  return Math.max(0.001, Math.min(startWidthScale, endWidthScale))
+}
+
+function getMaxTaperAmount(params: EffectMeshParams): number {
+  return Math.max(
+    THREE.MathUtils.clamp(params.taper, 0, 1),
+    THREE.MathUtils.clamp(params.endTaper ?? params.taper, 0, 1)
+  )
 }
 
 function getSignedNoise(index: number, channelSeed: number, shapeSeed: number): number {

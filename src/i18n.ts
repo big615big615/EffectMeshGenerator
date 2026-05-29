@@ -19,6 +19,8 @@ export interface UiText {
   curve: string
   topCurve: string
   taper: string
+  taperStart: string
+  taperEnd: string
   spread: string
   twist: string
   waveCount: string
@@ -131,6 +133,8 @@ export const uiText: Record<Language, UiText> = {
     curve: 'カーブ',
     topCurve: 'ふくらみ',
     taper: 'テーパー',
+    taperStart: 'テーパー 始点',
+    taperEnd: 'テーパー 終点',
     spread: '広がり',
     twist: 'ねじれ',
     waveCount: '波数',
@@ -223,6 +227,8 @@ export const uiText: Record<Language, UiText> = {
     curve: 'Curve',
     topCurve: 'Bulge',
     taper: 'Taper',
+    taperStart: 'Taper Start',
+    taperEnd: 'Taper End',
     spread: 'Spread',
     twist: 'Twist',
     waveCount: 'Wave Count',
