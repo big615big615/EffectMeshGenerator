@@ -8,6 +8,7 @@ export type EffectMeshType =
   | 'ribbon'
   | 'lightningRibbon'
   | 'arc'
+  | 'arcRibbon'
   | 'spiral'
   | 'risingSpiralRibbon'
   | 'cylinderSpiralRibbon'
@@ -45,6 +46,7 @@ export const EFFECT_MESH_TYPE_OPTIONS: ReadonlyArray<{
   { value: 'ribbon', label: 'Ribbon / Trail' },
   { value: 'lightningRibbon', label: 'Lightning Ribbon / Bolt' },
   { value: 'arc', label: 'Arc / Ring Segment' },
+  { value: 'arcRibbon', label: 'Ribbon / Curve' },
   { value: 'risingSpiralRibbon', label: 'Rising Spiral Ribbon / Tornado' },
   { value: 'cylinderSpiralRibbon', label: 'Cylinder Spiral Ribbon / Tornado' },
   { value: 'plane', label: 'Plane / Quad' },
@@ -67,6 +69,8 @@ export function generateEffectMesh(
       return generateLightningRibbonMesh(params)
     case 'arc':
       return generateArcMesh(params)
+    case 'arcRibbon':
+      return generateArcRibbonMesh(params)
     case 'spiral':
       return generateSpiralMesh(params)
     case 'risingSpiralRibbon':
@@ -263,6 +267,91 @@ function generateArcMesh(params: EffectMeshParams): THREE.BufferGeometry {
       lowerEdgeSpreadProfile * currentWidth * spreadAmount * arcTaperProfile
     return vertex
   })
+}
+
+function generateArcRibbonMesh(params: EffectMeshParams, liftDirection = 1): THREE.BufferGeometry {
+  const { lengthSegments, widthSegments } = getSegmentCounts(params)
+  const curveAmount = getCurveAmount(params)
+  const liftAmount = getTopCurveAmount(params) * liftDirection
+  const spreadAmount = Math.max(0, params.spread)
+
+  if (curveAmount <= 0.0001) {
+    const halfLength = params.length / 2
+
+    return createGridGeometry(lengthSegments, widthSegments, (u, v) => {
+      const tangent = new THREE.Vector3(1, 0, 0)
+      const sideDirection = new THREE.Vector3(0, 1, 0)
+      const normalDirection = new THREE.Vector3(0, 0, 1)
+      const twistRotation = new THREE.Quaternion().setFromAxisAngle(
+        tangent,
+        (u - 0.5) * Math.PI * params.twist
+      )
+      const currentWidth = getTaperedWidth(params, u)
+      const lowerEdgeSpreadProfile = 1 - v
+      const sideOffset = (v - 0.5) * currentWidth
+      const normalOffset =
+        Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount +
+        lowerEdgeSpreadProfile * currentWidth * spreadAmount
+      const twistedSideDirection = sideDirection.clone().applyQuaternion(twistRotation)
+      const twistedNormalDirection = normalDirection.clone().applyQuaternion(twistRotation)
+
+      return new THREE.Vector3(
+        THREE.MathUtils.lerp(-halfLength, halfLength, u),
+        ARC_VERTICAL_OFFSET,
+        0
+      )
+        .addScaledVector(twistedSideDirection, sideOffset)
+        .addScaledVector(twistedNormalDirection, normalOffset)
+    })
+  }
+
+  const arcAngle = curveAmount * Math.PI * 2
+  const outerRadius = Math.max(params.length / arcAngle + 1, params.thickness, 0.001)
+  const thicknessFillAmount = THREE.MathUtils.clamp((params.thickness - 0.1) / 1.9, 0, 1)
+  const taperAmount = THREE.MathUtils.clamp(params.taper, 0, 1)
+
+  return createGridGeometry(lengthSegments, widthSegments, (u, v) => {
+    const angle = THREE.MathUtils.lerp(-arcAngle / 2, arcAngle / 2, u)
+    const radialDirection = new THREE.Vector3(Math.sin(angle), Math.cos(angle), 0)
+    const tangent = new THREE.Vector3(Math.cos(angle), -Math.sin(angle), 0)
+    const normalDirection = new THREE.Vector3(0, 0, 1)
+    const twistRotation = new THREE.Quaternion().setFromAxisAngle(
+      tangent,
+      (u - 0.5) * Math.PI * params.twist
+    )
+    const currentWidth = getTaperedWidth(params, u)
+    const endSharpnessProfile = Math.sin(Math.PI * u)
+    const centerTaperProfile = 1 - taperAmount * 0.5
+    const arcTaperProfile =
+      THREE.MathUtils.lerp(1, endSharpnessProfile, taperAmount) * centerTaperProfile
+    const radialWidth = THREE.MathUtils.lerp(currentWidth, outerRadius, thicknessFillAmount)
+    const taperedRadialWidth = radialWidth * arcTaperProfile
+    const centerRadius = Math.max(0, outerRadius - taperedRadialWidth * 0.5)
+    const sideOffset = (v - 0.5) * taperedRadialWidth
+    const lowerEdgeSpreadProfile = 1 - v
+    const normalOffset =
+      Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount +
+      lowerEdgeSpreadProfile * currentWidth * spreadAmount * arcTaperProfile
+    const twistedSideDirection = radialDirection.clone().applyQuaternion(twistRotation)
+    const twistedNormalDirection = normalDirection.clone().applyQuaternion(twistRotation)
+    const vertex = radialDirection.clone().multiplyScalar(centerRadius)
+    vertex.y -= outerRadius
+    vertex.y += ARC_VERTICAL_OFFSET
+    vertex
+      .addScaledVector(twistedSideDirection, sideOffset)
+      .addScaledVector(twistedNormalDirection, normalOffset)
+    return vertex
+  })
+}
+
+export function generateDoubleSidedArcRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
+  const frontGeometry = generateArcRibbonMesh(params, 1)
+  const backGeometry = generateArcRibbonMesh(params, -1)
+  const combinedGeometry = combineOppositeFacingGeometries(frontGeometry, backGeometry)
+
+  frontGeometry.dispose()
+  backGeometry.dispose()
+  return combinedGeometry
 }
 
 function generateSpiralMesh(params: EffectMeshParams): THREE.BufferGeometry {

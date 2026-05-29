@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import {
+  generateDoubleSidedArcRibbonMesh,
   generateDoubleSidedCylinderSpiralRibbonMesh,
   generateDoubleSidedLightningRibbonMesh,
   generateDoubleSidedOpenCylinderMesh,
@@ -646,6 +647,7 @@ const Viewport: React.FC<ViewportProps> = ({
   ): boolean =>
     (
       selectedMeshType === 'lightningRibbon' ||
+      selectedMeshType === 'arcRibbon' ||
       selectedMeshType === 'slash' ||
       selectedMeshType === 'risingSpiralRibbon' ||
       selectedMeshType === 'cylinderSpiralRibbon' ||
@@ -659,6 +661,10 @@ const Viewport: React.FC<ViewportProps> = ({
   ): THREE.BufferGeometry => {
     if (selectedMeshType === 'slash') {
       return generateDoubleSidedSlashMesh(meshParams)
+    }
+
+    if (selectedMeshType === 'arcRibbon') {
+      return generateDoubleSidedArcRibbonMesh(meshParams)
     }
 
     if (selectedMeshType === 'lightningRibbon') {

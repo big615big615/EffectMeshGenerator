@@ -53,6 +53,22 @@ const ARC_DEFAULT_PARAMS: EffectMeshParams = {
   cylinderScale: 1,
 }
 
+const ARC_RIBBON_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 12,
+  widthDivisions: 2,
+  thickness: 0.2,
+  length: 1.5,
+  curve: 1,
+  topCurve: 0,
+  taper: 0,
+  spread: 0,
+  twist: 0.5,
+  waveCount: 1,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
+}
+
 const SPIRAL_DEFAULT_PARAMS: EffectMeshParams = {
   divisions: 32,
   widthDivisions: 2,
@@ -250,6 +266,7 @@ const MESH_TYPE_OPTION_VALUES: ReadonlyArray<EffectMeshType> = [
   'slash',
   'arc',
   'openCylinder',
+  'arcRibbon',
   'ribbon',
   'lightningRibbon',
   'risingSpiralRibbon',
@@ -275,6 +292,7 @@ type EffectControlKey =
 const VISIBLE_EFFECT_CONTROLS: Record<EffectMeshType, readonly EffectControlKey[]> = {
   slash: ['curve', 'topCurve', 'taper', 'spread', 'twist'],
   arc: ['curve', 'topCurve', 'taper', 'spread'],
+  arcRibbon: ['curve', 'topCurve', 'taper', 'spread', 'twist'],
   openCylinder: ['curve', 'topCurve', 'spread', 'twist'],
   ribbon: ['curve', 'topCurve', 'taper', 'spread', 'twist', 'waveCount', 'seed'],
   lightningRibbon: ['curve', 'topCurve', 'taper', 'spread', 'twist', 'waveCount', 'seed'],
@@ -292,6 +310,7 @@ const VISIBLE_EFFECT_CONTROLS: Record<EffectMeshType, readonly EffectControlKey[
 
 const DOUBLE_SIDED_MESH_TYPES: ReadonlySet<EffectMeshType> = new Set([
   'slash',
+  'arcRibbon',
   'lightningRibbon',
   'risingSpiralRibbon',
   'cylinderSpiralRibbon',
@@ -448,6 +467,13 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     if (nextMeshType === 'arc') {
       setParams(ARC_DEFAULT_PARAMS)
       setMirrorZ(true)
+      setDoubleSided(false)
+      return
+    }
+
+    if (nextMeshType === 'arcRibbon') {
+      setParams(ARC_RIBBON_DEFAULT_PARAMS)
+      setMirrorZ(false)
       setDoubleSided(false)
       return
     }

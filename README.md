@@ -1,45 +1,104 @@
 # Effect Mesh Generator
 
-ゲームエフェクト用メッシュ生成ツール
+Unity などのリアルタイム VFX 制作用に、スラッシュ、リボン、リング、球面、ビームなどのエフェクト用メッシュをブラウザ上で生成する React + Vite + Three.js ツールです。
 
-## クイックスタート
+## Features
 
-### セットアップ
+- リアルタイム 3D プレビュー
+- UV プレビュー、UV 回転、UV スクロール確認
+- テクスチャ画像のローカルプレビュー
+- ワイヤーフレーム、ポリゴン数、ピボット表示
+- ピボット、スケール、回転の調整
+- 日本語 / English UI
+- OBJ エクスポート
+
+## Mesh Types
+
+- Slash / Straight
+- Ribbon / Wave
+- Ribbon / Lightning
+- Slash / Arc
+- Ribbon / Curve
+- Tornado / Ribbon
+- Tornado / Cylinder
+- Plane
+- Ring
+- Sphere
+- Hemisphere Y / Z
+- Shockwave / Cylinder
+- Beam
+
+## Export Status
+
+現在の公開 UI では OBJ エクスポートを主な出力形式にしています。
+
+FBX、GLB、GLTF のエクスポート実装はコード上に残していますが、Unity / Blender での確認や UV 表示との整合が安定するまでボタンは非表示です。
+
+OBJ は Three.js の標準 `OBJExporter` ではなく、ツール上の UV 表示と一致するように調整した独自の書き出し処理を使っています。
+
+## Quick Start
 
 ```bash
 npm install
-```
-
-### 開発サーバーの起動
-
-```bash
 npm run dev
 ```
 
-`http://localhost:3000` でブラウザを開いてください。
+開発サーバーは通常 `http://localhost:3000` で起動します。
 
-### ビルド
+Windows PowerShell で実行ポリシーに引っかかる場合は、以下のように `npm.cmd` を使ってください。
+
+```bash
+npm.cmd run dev
+```
+
+## Build
 
 ```bash
 npm run build
 ```
 
-## 機能
+Windows PowerShell:
 
-- **リアルタイムプレビュー**: パラメータ変更時に3Dメッシュが即座に更新
-- **カスタマイズ可能なパラメータ**:
-  - `分割数`: メッシュの細かさ（3～32）
-  - `厚み`: リボンの厚さ（0.1～2.0）
-  - `長さ`: メッシュの長さ（1～10）
-  - `曲線強度`: 曲線の強度（0～2.0）
+```bash
+npm.cmd run build
+```
 
-- **自動回転**: メッシュが自動で回転して確認しやすく
+ビルド結果は `dist/` に出力されます。`dist/` は生成物なので、通常はリポジトリには含めません。
 
-## 次のステップ
+## Requirements
 
-- [x] GLB/GLTF エクスポート機能
-- [ ] FBX エクスポート機能（Unity/Blender インポートが不安定なため保留中。ボタンは非表示）
-- [ ] 竜巻エフェクト生成
-- [ ] 爆発波エフェクト生成
-- [ ] マテリアルカスタマイズ
-- [ ] アニメーション機能
+- Node.js 18 以上
+- npm 9 以上
+- WebGL が使えるモダンブラウザ
+
+デスクトップブラウザでの利用を想定しています。モバイルブラウザでは操作パネルや 3D ビューが狭くなる場合があります。
+
+## Privacy
+
+画像テクスチャを選択した場合でも、ファイルはブラウザ内でプレビューに使われるだけで、このアプリから外部サーバーへ送信されません。
+
+## Development Notes
+
+- メッシュ生成の基準実装は `src/generators/slashMeshGenerator.ts` と `src/generators/effectMeshGenerator.ts` です。
+- UV プレビュー、OBJ 書き出し、将来の GLB/GLTF/FBX 書き出しは同じ見た目になるように注意してください。
+- Unity でのカリング、法線、UV の向きに影響する変更は、ツール上のプレビューと Unity import の両方で確認してください。
+
+## Scripts
+
+```bash
+npm run dev
+npm run build
+npm run preview
+```
+
+## Security
+
+脆弱性の報告方法は [SECURITY.md](SECURITY.md) を参照してください。
+
+## Contributing
+
+コントリビューションの流れは [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
+
+## License
+
+MIT License. See [LICENSE](LICENSE).

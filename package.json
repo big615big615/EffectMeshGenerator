@@ -1,11 +1,26 @@
 {
   "name": "effect-mesh-generator",
   "version": "0.1.0",
+  "description": "A browser-based mesh generator for realtime game VFX and Unity effect workflows.",
+  "license": "MIT",
   "type": "module",
+  "keywords": [
+    "vfx",
+    "unity",
+    "threejs",
+    "mesh",
+    "uv",
+    "react",
+    "vite"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   },
   "dependencies": {
     "react": "^18.2.0",
