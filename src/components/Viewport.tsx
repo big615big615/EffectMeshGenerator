@@ -7,6 +7,7 @@ import {
   generateDoubleSidedLightningRibbonMesh,
   generateDoubleSidedOpenCylinderMesh,
   generateDoubleSidedRisingSpiralRibbonMesh,
+  generateDoubleSidedRibbonMesh,
   generateDoubleSidedSlashMesh,
   generateEffectMesh,
   type EffectMeshParams,
@@ -647,6 +648,7 @@ const Viewport: React.FC<ViewportProps> = ({
   ): boolean =>
     (
       selectedMeshType === 'lightningRibbon' ||
+      selectedMeshType === 'ribbon' ||
       selectedMeshType === 'arcRibbon' ||
       selectedMeshType === 'slash' ||
       selectedMeshType === 'risingSpiralRibbon' ||
@@ -669,6 +671,10 @@ const Viewport: React.FC<ViewportProps> = ({
 
     if (selectedMeshType === 'lightningRibbon') {
       return generateDoubleSidedLightningRibbonMesh(meshParams)
+    }
+
+    if (selectedMeshType === 'ribbon') {
+      return generateDoubleSidedRibbonMesh(meshParams)
     }
 
     if (selectedMeshType === 'openCylinder') {

@@ -310,6 +310,7 @@ const VISIBLE_EFFECT_CONTROLS: Record<EffectMeshType, readonly EffectControlKey[
 
 const DOUBLE_SIDED_MESH_TYPES: ReadonlySet<EffectMeshType> = new Set([
   'slash',
+  'ribbon',
   'arcRibbon',
   'lightningRibbon',
   'risingSpiralRibbon',
@@ -439,6 +440,24 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
   const handleChange = (key: keyof ControlPanelProps['params'], value: number) => {
     setParams({ ...params, [key]: value })
+  }
+  const handleControlPanelPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    const target = event.target
+    if (!(target instanceof HTMLInputElement) || target.type !== 'range') return
+
+    document.getSelection()?.removeAllRanges()
+    document.body.classList.add('range-input-dragging')
+
+    const cleanup = () => {
+      document.body.classList.remove('range-input-dragging')
+      window.removeEventListener('pointerup', cleanup)
+      window.removeEventListener('pointercancel', cleanup)
+      window.removeEventListener('blur', cleanup)
+    }
+
+    window.addEventListener('pointerup', cleanup)
+    window.addEventListener('pointercancel', cleanup)
+    window.addEventListener('blur', cleanup)
   }
   const applyMeshParams = (nextParams: EffectMeshParams) => {
     setParams({ ...nextParams, endTaper: nextParams.endTaper ?? nextParams.taper })
@@ -771,7 +790,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   }
 
   return (
-    <div className="control-panel">
+    <div className="control-panel" onPointerDownCapture={handleControlPanelPointerDown}>
       <h2>{t.panelTitle}</h2>
 
       <div className="language-switch" aria-label={t.language}>

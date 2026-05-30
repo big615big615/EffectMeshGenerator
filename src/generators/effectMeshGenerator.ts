@@ -126,7 +126,7 @@ function generateSlashEffectMesh(params: EffectMeshParams, liftDirection = 1): T
   )
 }
 
-function generateRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
+function generateRibbonMesh(params: EffectMeshParams, liftDirection = 1): THREE.BufferGeometry {
   const { lengthSegments, widthSegments } = getSegmentCounts(params)
   const halfLength = params.length / 2
   const curveAmount = getCurveAmount(params)
@@ -157,9 +157,22 @@ function generateRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
     const twistedNormalDirection = normalDirection.clone().applyQuaternion(twistRotation)
     const currentWidth = getTaperedWidth(params, u)
     const vertex = centerPoints[i].clone().addScaledVector(twistedSideDirection, (v - 0.5) * currentWidth)
-    vertex.addScaledVector(twistedNormalDirection, Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount)
+    vertex.addScaledVector(
+      twistedNormalDirection,
+      Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount * liftDirection
+    )
     return vertex
   })
+}
+
+export function generateDoubleSidedRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
+  const frontGeometry = generateRibbonMesh(params, 1)
+  const backGeometry = generateRibbonMesh(params, -1)
+  const combinedGeometry = combineOppositeFacingGeometries(frontGeometry, backGeometry)
+
+  frontGeometry.dispose()
+  backGeometry.dispose()
+  return combinedGeometry
 }
 
 function generateLightningRibbonMesh(
