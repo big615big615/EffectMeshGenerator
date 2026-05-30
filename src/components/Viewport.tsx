@@ -283,10 +283,12 @@ const Viewport: React.FC<ViewportProps> = ({
     }
     animate()
 
-    // Handle window resize
+    // Handle viewport resize from both window changes and panel collapse/expand.
     const handleResize = () => {
       const newWidth = containerRef.current?.clientWidth || width
       const newHeight = containerRef.current?.clientHeight || height
+      if (newWidth <= 0 || newHeight <= 0) return
+
       camera.aspect = newWidth / newHeight
       camera.updateProjectionMatrix()
       if (uvCameraRef.current) {
@@ -294,10 +296,19 @@ const Viewport: React.FC<ViewportProps> = ({
       }
       renderer.setSize(newWidth, newHeight)
     }
+
+    const resizeObserver =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => handleResize())
+        : null
+    if (resizeObserver) {
+      resizeObserver.observe(containerRef.current)
+    }
     window.addEventListener('resize', handleResize)
 
     return () => {
       cancelAnimationFrame(animationId)
+      resizeObserver?.disconnect()
       window.removeEventListener('resize', handleResize)
       controls.dispose()
       containerRef.current?.removeChild(renderer.domElement)

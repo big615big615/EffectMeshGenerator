@@ -63,6 +63,7 @@ const App: React.FC = () => {
   const [currentMesh, setCurrentMesh] = useState<THREE.Mesh | undefined>(undefined)
   const [texturePreview, setTexturePreview] = useState<TexturePreview | null>(null)
   const [language, setLanguage] = useState<Language>('ja')
+  const [isControlPanelCollapsed, setIsControlPanelCollapsed] = useState(false)
 
   useEffect(() => {
     document.documentElement.lang = language
@@ -85,8 +86,16 @@ const App: React.FC = () => {
     setShowUV(true)
   }
 
+  const panelToggleLabel = isControlPanelCollapsed
+    ? language === 'ja'
+      ? '右側のUIを開く'
+      : 'Open right panel'
+    : language === 'ja'
+      ? '右側のUIを閉じる'
+      : 'Close right panel'
+
   return (
-    <div className="app-container">
+    <div className={`app-container ${isControlPanelCollapsed ? 'control-panel-collapsed' : ''}`}>
       <div className="viewport-container">
         <Viewport
           meshType={meshType}
@@ -109,44 +118,61 @@ const App: React.FC = () => {
           onMeshReady={setCurrentMesh}
         />
       </div>
-      <div className="control-panel-container">
-        <ControlPanel
-          meshType={meshType}
-          setMeshType={setMeshType}
-          params={params}
-          setParams={setParams}
-          mesh={currentMesh}
-          wireframe={wireframe}
-          setWireframe={setWireframe}
-          showUV={showUV}
-          setShowUV={setShowUV}
-          showTextureIn3D={showTextureIn3D}
-          setShowTextureIn3D={setShowTextureIn3D}
-          animateUVScroll={animateUVScroll}
-          setAnimateUVScroll={setAnimateUVScroll}
-          onUVScrollReset={() => setUVScrollResetVersion((version) => version + 1)}
-          uvRotation={uvRotation}
-          setUVRotation={setUVRotation}
-          mirrorZ={mirrorZ}
-          setMirrorZ={setMirrorZ}
-          doubleSided={doubleSided}
-          setDoubleSided={setDoubleSided}
-          showPolygonCount={showPolygonCount}
-          setShowPolygonCount={setShowPolygonCount}
-          showPivot={showPivot}
-          setShowPivot={setShowPivot}
-          pivot={pivot}
-          setPivot={setPivot}
-          scale={scale}
-          setScale={setScale}
-          rotation={rotation}
-          setRotation={setRotation}
-          textureName={texturePreview?.name ?? null}
-          onTextureFileSelect={handleTextureFileSelect}
-          onTextureReset={() => setTexturePreview(null)}
-          language={language}
-          setLanguage={setLanguage}
-        />
+      <button
+        type="button"
+        className="control-panel-toggle"
+        onClick={() => setIsControlPanelCollapsed((collapsed) => !collapsed)}
+        aria-controls="control-panel"
+        aria-expanded={!isControlPanelCollapsed}
+        aria-label={panelToggleLabel}
+        title={panelToggleLabel}
+      >
+        {isControlPanelCollapsed ? '‹' : '›'}
+      </button>
+      <div
+        id="control-panel"
+        className="control-panel-container"
+        aria-hidden={isControlPanelCollapsed}
+      >
+        {!isControlPanelCollapsed && (
+          <ControlPanel
+            meshType={meshType}
+            setMeshType={setMeshType}
+            params={params}
+            setParams={setParams}
+            mesh={currentMesh}
+            wireframe={wireframe}
+            setWireframe={setWireframe}
+            showUV={showUV}
+            setShowUV={setShowUV}
+            showTextureIn3D={showTextureIn3D}
+            setShowTextureIn3D={setShowTextureIn3D}
+            animateUVScroll={animateUVScroll}
+            setAnimateUVScroll={setAnimateUVScroll}
+            onUVScrollReset={() => setUVScrollResetVersion((version) => version + 1)}
+            uvRotation={uvRotation}
+            setUVRotation={setUVRotation}
+            mirrorZ={mirrorZ}
+            setMirrorZ={setMirrorZ}
+            doubleSided={doubleSided}
+            setDoubleSided={setDoubleSided}
+            showPolygonCount={showPolygonCount}
+            setShowPolygonCount={setShowPolygonCount}
+            showPivot={showPivot}
+            setShowPivot={setShowPivot}
+            pivot={pivot}
+            setPivot={setPivot}
+            scale={scale}
+            setScale={setScale}
+            rotation={rotation}
+            setRotation={setRotation}
+            textureName={texturePreview?.name ?? null}
+            onTextureFileSelect={handleTextureFileSelect}
+            onTextureReset={() => setTexturePreview(null)}
+            language={language}
+            setLanguage={setLanguage}
+          />
+        )}
       </div>
     </div>
   )

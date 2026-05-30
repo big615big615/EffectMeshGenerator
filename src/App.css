@@ -1,4 +1,5 @@
 .app-container {
+  position: relative;
   display: flex;
   width: 100%;
   height: 100%;
@@ -21,4 +22,53 @@
   border-left: 1px solid #404040;
   overflow-y: auto;
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.5);
+  transition:
+    flex-basis 0.2s ease,
+    width 0.2s ease,
+    min-width 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.control-panel-toggle {
+  position: absolute;
+  top: 14px;
+  right: 300px;
+  z-index: 10;
+  width: 28px;
+  height: 44px;
+  border: 1px solid #404040;
+  border-right: none;
+  border-radius: 6px 0 0 6px;
+  background: #252525;
+  color: #00ff88;
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.35);
+  transition:
+    right 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.control-panel-toggle:hover,
+.control-panel-toggle:focus-visible {
+  background: #303030;
+  border-color: #00ff88;
+  outline: none;
+}
+
+.app-container.control-panel-collapsed .control-panel-container {
+  flex-basis: 0;
+  width: 0;
+  min-width: 0;
+  border-color: transparent;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.app-container.control-panel-collapsed .control-panel-toggle {
+  right: 0;
 }
