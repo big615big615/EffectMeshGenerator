@@ -32,14 +32,14 @@ interface TexturePreview {
 const App: React.FC = () => {
   const [meshType, setMeshType] = useState<EffectMeshType>('slash')
   const [params, setParams] = useState<EffectMeshParams>({
-    divisions: 8,
-    widthDivisions: 1,
+    divisions: 12,
+    widthDivisions: 2,
     thickness: 0.5,
     length: 3,
-    curve: 0.5,
-    topCurve: 0,
-    taper: 0,
-    endTaper: 0,
+    curve: 0.8,
+    topCurve: 0.2,
+    taper: 0.35,
+    endTaper: 0.35,
     spread: 0,
     twist: 0,
     waveCount: 1,
@@ -47,7 +47,7 @@ const App: React.FC = () => {
     yClip: 0,
     cylinderScale: 1,
   })
-  const [wireframe, setWireframe] = useState(false)
+  const [wireframe, setWireframe] = useState(true)
   const [showUV, setShowUV] = useState(false)
   const [showTextureIn3D, setShowTextureIn3D] = useState(false)
   const [animateUVScroll, setAnimateUVScroll] = useState(false)
