@@ -9,6 +9,10 @@ Unity などのリアルタイム VFX 制作用に、スラッシュ、リボン
 
 https://big615big615.github.io/EffectMeshGenerator/
 
+GitHub repository:
+
+https://github.com/big615big615/EffectMeshGenerator
+
 ## Features
 
 - リアルタイム 3D プレビュー

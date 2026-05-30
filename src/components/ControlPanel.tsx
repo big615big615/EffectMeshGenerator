@@ -328,6 +328,7 @@ const CONTACT_URLS: Record<Language, string> = {
   ja: 'https://forms.gle/PBUeyRmNTppJL2EQ8',
   en: 'https://forms.gle/gXjDBKPhWy9H1Wft6',
 }
+const REPOSITORY_URL = 'https://github.com/big615big615/EffectMeshGenerator'
 
 interface ControlPanelProps {
   meshType: EffectMeshType
@@ -1407,6 +1408,13 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               <section>
                 <h4>{t.privacyTitle}</h4>
                 <p>{t.privacyBody}</p>
+              </section>
+              <section>
+                <h4>{t.repositoryTitle}</h4>
+                <p>{t.repositoryBody}</p>
+                <a href={REPOSITORY_URL} target="_blank" rel="noreferrer">
+                  {t.repositoryLink}
+                </a>
               </section>
               <section>
                 <h4>{t.contactTitle}</h4>

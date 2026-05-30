@@ -73,6 +73,9 @@ export interface UiText {
   appLicenseBody: string
   privacyTitle: string
   privacyBody: string
+  repositoryTitle: string
+  repositoryBody: string
+  repositoryLink: string
   contactTitle: string
   contactBody: string
   contactLink: string
@@ -191,6 +194,10 @@ export const uiText: Record<Language, UiText> = {
     privacyTitle: 'テクスチャとデータ',
     privacyBody:
       '選択したテクスチャ画像と生成メッシュはブラウザ内で処理されます。このアプリは画像やメッシュデータをサーバーへ保存・送信しません。',
+    repositoryTitle: 'GitHub リポジトリ',
+    repositoryBody:
+      'ソースコード、README、利用条件、更新履歴は GitHub リポジトリで確認できます。',
+    repositoryLink: 'GitHub リポジトリを開く',
     contactTitle: '問い合わせ',
     contactBody:
       '不具合、要望、利用条件についての相談はお問い合わせフォームから連絡してください。返信が必要な場合は、フォーム内にメールアドレスなどの連絡先を任意で記載してください。',
@@ -285,6 +292,10 @@ export const uiText: Record<Language, UiText> = {
     privacyTitle: 'Textures and Data',
     privacyBody:
       'Selected texture images and generated meshes are processed in your browser. This app does not save or upload images or mesh data to a server.',
+    repositoryTitle: 'GitHub Repository',
+    repositoryBody:
+      'Source code, README, usage terms, and update history are available in the GitHub repository.',
+    repositoryLink: 'Open GitHub Repository',
     contactTitle: 'Contact',
     contactBody:
       'For bugs, requests, or questions about usage terms, please use the contact form. If you need a reply, optionally include an email address or other contact information in the form.',

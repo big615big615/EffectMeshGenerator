@@ -16,6 +16,10 @@ The application source code is licensed under the MIT License. See [LICENSE](LIC
 
 If you copy, modify, or redistribute the application source code, keep the copyright notice and license text as required by the MIT License.
 
+Source code and update history are available in the GitHub repository:
+
+https://github.com/big615big615/EffectMeshGenerator
+
 ## Textures and Uploaded Files
 
 Texture files selected in the UI are loaded locally in the browser for preview only.
