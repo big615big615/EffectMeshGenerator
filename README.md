@@ -1,7 +1,7 @@
 # Effect Mesh Generator
 
 Unity などのリアルタイム VFX 制作用に、スラッシュ、リボン、リング、球面、ビームなどのエフェクト用メッシュをブラウザ上で生成する React + Vite + Three.js ツールです。OBJ形式でエクスポートできます。
-<img width="1899" height="904" alt="EffectMeshGenerator_sample_01" src="https://github.com/user-attachments/assets/4b712091-eb64-4e8e-8147-d65e77a80171" />
+<img width="640" height="344" alt="レコーディング 2026-05-30 143031" src="https://github.com/user-attachments/assets/38a1f2cf-8889-428a-9ccd-f190a3dfa169" />
 
 ## Web App
 
