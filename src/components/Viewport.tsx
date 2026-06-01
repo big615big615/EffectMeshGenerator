@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import {
+  generateCrossEffectMesh,
+  generateDoubleSidedCrossEffectMesh,
   generateDoubleSidedArcRibbonMesh,
   generateDoubleSidedCylinderSpiralRibbonMesh,
   generateDoubleSidedLightningRibbonMesh,
@@ -40,6 +42,7 @@ interface ViewportProps {
   uvRotation: number
   mirrorZ: boolean
   doubleSided: boolean
+  crossMesh: boolean
   showPolygonCount: boolean
   showPivot: boolean
   pivot: {
@@ -73,6 +76,7 @@ const Viewport: React.FC<ViewportProps> = ({
   uvRotation,
   mirrorZ,
   doubleSided,
+  crossMesh,
   showPolygonCount,
   showPivot,
   pivot,
@@ -149,7 +153,7 @@ const Viewport: React.FC<ViewportProps> = ({
     scene.add(directionalLight)
 
     // Initial mesh
-    const geometry = createEffectGeometry(meshType, params, uvRotation, mirrorZ, doubleSided, pivot)
+    const geometry = createEffectGeometry(meshType, params, uvRotation, mirrorZ, doubleSided, crossMesh, pivot)
     const useDoubleSidedGeometry = shouldUseDoubleSidedGeometry(meshType, doubleSided)
     setPolygonCount(getGeometryPolygonCount(geometry))
     const checkerTexture = createCheckerTexture(8, 8)
@@ -335,7 +339,7 @@ const Viewport: React.FC<ViewportProps> = ({
     if (!sceneRef.current || !meshRef.current) return
 
     const oldGeometry = meshRef.current.geometry
-    const newGeometry = createEffectGeometry(meshType, params, uvRotation, mirrorZ, doubleSided, pivot)
+    const newGeometry = createEffectGeometry(meshType, params, uvRotation, mirrorZ, doubleSided, crossMesh, pivot)
     const useDoubleSidedGeometry = shouldUseDoubleSidedGeometry(meshType, doubleSided)
     setPolygonCount(getGeometryPolygonCount(newGeometry))
     meshRef.current.geometry = newGeometry
@@ -361,7 +365,7 @@ const Viewport: React.FC<ViewportProps> = ({
       uvWireframeRef.current = newUVWireframe
       uvSceneRef.current?.add(newUVWireframe)
     }
-  }, [meshType, params, uvRotation, mirrorZ, doubleSided, pivot])
+  }, [meshType, params, uvRotation, mirrorZ, doubleSided, crossMesh, pivot])
 
   useEffect(() => {
     if (!pivotMarkerRef.current) return
@@ -635,11 +639,17 @@ const Viewport: React.FC<ViewportProps> = ({
     rotation: number,
     shouldMirrorZ: boolean,
     shouldDoubleSide: boolean,
+    shouldCrossMesh: boolean,
     pivotPosition: ViewportProps['pivot']
   ): THREE.BufferGeometry => {
-    const geometry = shouldUseDoubleSidedGeometry(selectedMeshType, shouldDoubleSide)
-      ? createDoubleSidedEffectGeometry(selectedMeshType, meshParams)
-      : generateEffectMesh(selectedMeshType, meshParams)
+    const geometry =
+      shouldUseCrossGeometry(selectedMeshType, shouldCrossMesh) && shouldUseDoubleSidedGeometry(selectedMeshType, shouldDoubleSide)
+        ? generateDoubleSidedCrossEffectMesh(selectedMeshType, meshParams)
+        : shouldUseCrossGeometry(selectedMeshType, shouldCrossMesh)
+          ? generateCrossEffectMesh(selectedMeshType, meshParams)
+          : shouldUseDoubleSidedGeometry(selectedMeshType, shouldDoubleSide)
+            ? createDoubleSidedEffectGeometry(selectedMeshType, meshParams)
+            : generateEffectMesh(selectedMeshType, meshParams)
     applyUVRotation(geometry, rotation + SLASH_UV_ROTATION_OFFSET)
 
     if (shouldMirrorZ) {
@@ -667,6 +677,23 @@ const Viewport: React.FC<ViewportProps> = ({
       selectedMeshType === 'openCylinder'
     ) &&
     shouldDoubleSide
+
+  const shouldUseCrossGeometry = (
+    selectedMeshType: EffectMeshType,
+    shouldCrossMesh: boolean
+  ): boolean =>
+    (
+      selectedMeshType === 'slash' ||
+      selectedMeshType === 'arc' ||
+      selectedMeshType === 'arcRibbon' ||
+      selectedMeshType === 'ribbon' ||
+      selectedMeshType === 'lightningRibbon' ||
+      selectedMeshType === 'risingSpiralRibbon' ||
+      selectedMeshType === 'cylinderSpiralRibbon' ||
+      selectedMeshType === 'plane' ||
+      selectedMeshType === 'flatRing'
+    ) &&
+    shouldCrossMesh
 
   const createDoubleSidedEffectGeometry = (
     selectedMeshType: EffectMeshType,

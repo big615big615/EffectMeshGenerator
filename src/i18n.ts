@@ -39,6 +39,7 @@ export interface UiText {
   uvRotate: string
   mirrorZ: string
   doubleSided: string
+  crossMesh: string
   polygonCount: string
   show: string
   on: string
@@ -156,6 +157,7 @@ export const uiText: Record<Language, UiText> = {
     uvRotate: 'UV回転',
     mirrorZ: 'Zミラー',
     doubleSided: '両面',
+    crossMesh: 'クロスメッシュ',
     polygonCount: 'ポリゴン数',
     show: '表示',
     on: 'オン',
@@ -254,6 +256,7 @@ export const uiText: Record<Language, UiText> = {
     uvRotate: 'UV Rotate',
     mirrorZ: 'Mirror Z',
     doubleSided: 'Double Sided',
+    crossMesh: 'Cross Mesh',
     polygonCount: 'Polygon Count',
     show: 'Show',
     on: 'ON',

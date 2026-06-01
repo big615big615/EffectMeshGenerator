@@ -55,6 +55,7 @@ const App: React.FC = () => {
   const [uvRotation, setUVRotation] = useState(0)
   const [mirrorZ, setMirrorZ] = useState(false)
   const [doubleSided, setDoubleSided] = useState(false)
+  const [crossMesh, setCrossMesh] = useState(false)
   const [showPolygonCount, setShowPolygonCount] = useState(false)
   const [showPivot, setShowPivot] = useState(false)
   const [pivot, setPivot] = useState<PivotParams>({ x: 0, y: 0, z: 0 })
@@ -108,6 +109,7 @@ const App: React.FC = () => {
           uvRotation={uvRotation}
           mirrorZ={mirrorZ}
           doubleSided={doubleSided}
+          crossMesh={crossMesh}
           showPolygonCount={showPolygonCount}
           showPivot={showPivot}
           pivot={pivot}
@@ -156,6 +158,8 @@ const App: React.FC = () => {
             setMirrorZ={setMirrorZ}
             doubleSided={doubleSided}
             setDoubleSided={setDoubleSided}
+            crossMesh={crossMesh}
+            setCrossMesh={setCrossMesh}
             showPolygonCount={showPolygonCount}
             setShowPolygonCount={setShowPolygonCount}
             showPivot={showPivot}

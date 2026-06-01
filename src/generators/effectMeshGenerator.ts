@@ -110,7 +110,121 @@ export function generateDoubleSidedSlashMesh(params: EffectMeshParams): THREE.Bu
   return combinedGeometry
 }
 
-function generateSlashEffectMesh(params: EffectMeshParams, liftDirection = 1): THREE.BufferGeometry {
+export function generateCrossSlashMesh(params: EffectMeshParams): THREE.BufferGeometry {
+  return generateSlashEffectMesh(params, 1, true)
+}
+
+export function generateDoubleSidedCrossSlashMesh(params: EffectMeshParams): THREE.BufferGeometry {
+  const frontGeometry = generateSlashEffectMesh(params, 1, true)
+  const backGeometry = generateSlashEffectMesh(params, -1, true)
+  const combinedGeometry = combineOppositeFacingGeometries(frontGeometry, backGeometry)
+
+  frontGeometry.dispose()
+  backGeometry.dispose()
+  return combinedGeometry
+}
+
+export function generateCrossEffectMesh(
+  meshType: EffectMeshType,
+  params: EffectMeshParams
+): THREE.BufferGeometry {
+  switch (meshType) {
+    case 'arc':
+      return generateArcMesh(params, true)
+    case 'arcRibbon':
+      return generateArcRibbonMesh(params, 1, true)
+    case 'openCylinder':
+      return generateCrossOpenCylinderMesh(params)
+    case 'ribbon':
+      return generateRibbonMesh(params, 1, true)
+    case 'lightningRibbon':
+      return generateLightningRibbonMesh(params, 1, true)
+    case 'risingSpiralRibbon':
+      return generateRisingSpiralRibbonMesh(params, 1, true)
+    case 'cylinderSpiralRibbon':
+      return generateCylinderSpiralRibbonMesh(params, 1, true)
+    case 'plane':
+      return generatePlaneMesh(params, true)
+    case 'flatRing':
+      return generateFlatRingMesh(params, true)
+    case 'slash':
+      return generateCrossSlashMesh(params)
+    default:
+      return generateEffectMesh(meshType, params)
+  }
+}
+
+export function generateDoubleSidedCrossEffectMesh(
+  meshType: EffectMeshType,
+  params: EffectMeshParams
+): THREE.BufferGeometry {
+  switch (meshType) {
+    case 'arcRibbon': {
+      const frontGeometry = generateArcRibbonMesh(params, 1, true)
+      const backGeometry = generateArcRibbonMesh(params, -1, true)
+      const combinedGeometry = combineOppositeFacingGeometries(frontGeometry, backGeometry)
+
+      frontGeometry.dispose()
+      backGeometry.dispose()
+      return combinedGeometry
+    }
+    case 'openCylinder': {
+      const frontGeometry = generateCrossOpenCylinderMesh(params, 1)
+      const backGeometry = generateCrossOpenCylinderMesh(params, -1)
+      const combinedGeometry = combineOppositeFacingGeometries(frontGeometry, backGeometry)
+
+      frontGeometry.dispose()
+      backGeometry.dispose()
+      return combinedGeometry
+    }
+    case 'ribbon': {
+      const frontGeometry = generateRibbonMesh(params, 1, true)
+      const backGeometry = generateRibbonMesh(params, -1, true)
+      const combinedGeometry = combineOppositeFacingGeometries(frontGeometry, backGeometry)
+
+      frontGeometry.dispose()
+      backGeometry.dispose()
+      return combinedGeometry
+    }
+    case 'lightningRibbon': {
+      const frontGeometry = generateLightningRibbonMesh(params, 1, true)
+      const backGeometry = generateLightningRibbonMesh(params, -1, true)
+      const combinedGeometry = combineOppositeFacingGeometries(frontGeometry, backGeometry)
+
+      frontGeometry.dispose()
+      backGeometry.dispose()
+      return combinedGeometry
+    }
+    case 'risingSpiralRibbon': {
+      const frontGeometry = generateRisingSpiralRibbonMesh(params, 1, true)
+      const backGeometry = generateRisingSpiralRibbonMesh(params, -1, true)
+      const combinedGeometry = combineOppositeFacingGeometries(frontGeometry, backGeometry)
+
+      frontGeometry.dispose()
+      backGeometry.dispose()
+      return combinedGeometry
+    }
+    case 'cylinderSpiralRibbon': {
+      const frontGeometry = generateCylinderSpiralRibbonMesh(params, 1, true)
+      const backGeometry = generateCylinderSpiralRibbonMesh(params, -1, true)
+      const combinedGeometry = combineOppositeFacingGeometries(frontGeometry, backGeometry)
+
+      frontGeometry.dispose()
+      backGeometry.dispose()
+      return combinedGeometry
+    }
+    case 'slash':
+      return generateDoubleSidedCrossSlashMesh(params)
+    default:
+      return generateCrossEffectMesh(meshType, params)
+  }
+}
+
+function generateSlashEffectMesh(
+  params: EffectMeshParams,
+  liftDirection = 1,
+  crossMesh = false
+): THREE.BufferGeometry {
   return generateSlashMesh(
     params.divisions,
     params.widthDivisions,
@@ -122,11 +236,16 @@ function generateSlashEffectMesh(params: EffectMeshParams, liftDirection = 1): T
     params.endTaper,
     params.twist,
     params.spread,
-    liftDirection
+    liftDirection,
+    crossMesh
   )
 }
 
-function generateRibbonMesh(params: EffectMeshParams, liftDirection = 1): THREE.BufferGeometry {
+function generateRibbonMesh(
+  params: EffectMeshParams,
+  liftDirection = 1,
+  crossMesh = false
+): THREE.BufferGeometry {
   const { lengthSegments, widthSegments } = getSegmentCounts(params)
   const halfLength = params.length / 2
   const curveAmount = getCurveAmount(params)
@@ -145,7 +264,7 @@ function generateRibbonMesh(params: EffectMeshParams, liftDirection = 1): THREE.
     centerPoints.push(new THREE.Vector3(x, y, 0))
   }
 
-  return createGridGeometry(lengthSegments, widthSegments, (u, v, i) => {
+  return createGridGeometry(lengthSegments, widthSegments, (u, v, i, _j, surfaceIndex) => {
     const tangent = getPolylineTangent(centerPoints, i)
     const sideDirection = getPlanarSideDirection(tangent)
     const normalDirection = getSurfaceNormalDirection(tangent, sideDirection)
@@ -155,14 +274,20 @@ function generateRibbonMesh(params: EffectMeshParams, liftDirection = 1): THREE.
     )
     const twistedSideDirection = sideDirection.clone().applyQuaternion(twistRotation)
     const twistedNormalDirection = normalDirection.clone().applyQuaternion(twistRotation)
+    const surfaceSideDirection =
+      surfaceIndex === 0 ? twistedSideDirection : twistedNormalDirection
+    const surfaceNormalDirection =
+      surfaceIndex === 0
+        ? twistedNormalDirection
+        : getSurfaceNormalDirection(tangent, surfaceSideDirection)
     const currentWidth = getTaperedWidth(params, u)
-    const vertex = centerPoints[i].clone().addScaledVector(twistedSideDirection, (v - 0.5) * currentWidth)
+    const vertex = centerPoints[i].clone().addScaledVector(surfaceSideDirection, (v - 0.5) * currentWidth)
     vertex.addScaledVector(
-      twistedNormalDirection,
+      surfaceNormalDirection,
       Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount * liftDirection
     )
     return vertex
-  })
+  }, crossMesh ? 2 : 1)
 }
 
 export function generateDoubleSidedRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
@@ -177,7 +302,8 @@ export function generateDoubleSidedRibbonMesh(params: EffectMeshParams): THREE.B
 
 function generateLightningRibbonMesh(
   params: EffectMeshParams,
-  liftDirection = 1
+  liftDirection = 1,
+  crossMesh = false
 ): THREE.BufferGeometry {
   const { lengthSegments, widthSegments } = getSegmentCounts(params)
   const halfLength = params.length / 2
@@ -208,7 +334,7 @@ function generateLightningRibbonMesh(
     centerPoints.push(anchorPoints[anchorIndex].clone().lerp(anchorPoints[anchorIndex + 1], segmentU))
   }
 
-  return createGridGeometry(lengthSegments, widthSegments, (u, v, i) => {
+  return createGridGeometry(lengthSegments, widthSegments, (u, v, i, _j, surfaceIndex) => {
     const tangent = getPolylineTangent(centerPoints, i)
     const sideDirection = getPlanarSideDirection(tangent)
     const normalDirection = getSurfaceNormalDirection(tangent, sideDirection)
@@ -218,11 +344,17 @@ function generateLightningRibbonMesh(
     )
     const twistedSideDirection = sideDirection.clone().applyQuaternion(twistRotation)
     const twistedNormalDirection = normalDirection.clone().applyQuaternion(twistRotation)
+    const surfaceSideDirection =
+      surfaceIndex === 0 ? twistedSideDirection : twistedNormalDirection
+    const surfaceNormalDirection =
+      surfaceIndex === 0
+        ? twistedNormalDirection
+        : getSurfaceNormalDirection(tangent, surfaceSideDirection)
     const currentWidth = getTaperedWidth(params, u)
-    const vertex = centerPoints[i].clone().addScaledVector(twistedSideDirection, (v - 0.5) * currentWidth)
-    vertex.addScaledVector(twistedNormalDirection, Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount)
+    const vertex = centerPoints[i].clone().addScaledVector(surfaceSideDirection, (v - 0.5) * currentWidth)
+    vertex.addScaledVector(surfaceNormalDirection, Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount)
     return vertex
-  })
+  }, crossMesh ? 2 : 1)
 }
 
 export function generateDoubleSidedLightningRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
@@ -235,7 +367,7 @@ export function generateDoubleSidedLightningRibbonMesh(params: EffectMeshParams)
   return combinedGeometry
 }
 
-function generateArcMesh(params: EffectMeshParams): THREE.BufferGeometry {
+function generateArcMesh(params: EffectMeshParams, crossMesh = false): THREE.BufferGeometry {
   const { lengthSegments, widthSegments } = getSegmentCounts(params)
   const curveAmount = getCurveAmount(params)
   const liftAmount = getTopCurveAmount(params)
@@ -244,17 +376,30 @@ function generateArcMesh(params: EffectMeshParams): THREE.BufferGeometry {
   if (curveAmount <= 0.0001) {
     const halfLength = params.length / 2
 
-    return createGridGeometry(lengthSegments, widthSegments, (u, v) => {
+    const geometry = createGridGeometry(lengthSegments, widthSegments, (u, v, _i, _j, surfaceIndex) => {
       const currentWidth = getTaperedWidth(params, u)
       const lowerEdgeSpreadProfile = 1 - v
+      const sideOffset = (v - 0.5) * currentWidth
+      const normalOffset =
+        Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount +
+        lowerEdgeSpreadProfile * currentWidth * spreadAmount
+
+      if (surfaceIndex === 1) {
+        return new THREE.Vector3(
+          THREE.MathUtils.lerp(-halfLength, halfLength, u),
+          ARC_VERTICAL_OFFSET + normalOffset,
+          sideOffset
+        )
+      }
 
       return new THREE.Vector3(
         THREE.MathUtils.lerp(-halfLength, halfLength, u),
-        (v - 0.5) * currentWidth + ARC_VERTICAL_OFFSET,
-        Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount +
-          lowerEdgeSpreadProfile * currentWidth * spreadAmount
+        sideOffset + ARC_VERTICAL_OFFSET,
+        normalOffset
       )
-    })
+    }, crossMesh ? 2 : 1)
+
+    return geometry
   }
 
   const arcAngle = curveAmount * Math.PI * 2
@@ -262,7 +407,7 @@ function generateArcMesh(params: EffectMeshParams): THREE.BufferGeometry {
   const thicknessFillAmount = THREE.MathUtils.clamp((params.thickness - 0.1) / 1.9, 0, 1)
   const taperAmount = getMaxTaperAmount(params)
 
-  return createGridGeometry(lengthSegments, widthSegments, (u, v) => {
+  const geometry = createGridGeometry(lengthSegments, widthSegments, (u, v, _i, _j, surfaceIndex) => {
     const angle = THREE.MathUtils.lerp(-arcAngle / 2, arcAngle / 2, u)
     const radialDirection = new THREE.Vector3(Math.sin(angle), Math.cos(angle), 0)
     const currentWidth = getTaperedWidth(params, u)
@@ -271,18 +416,36 @@ function generateArcMesh(params: EffectMeshParams): THREE.BufferGeometry {
     const radialWidth = THREE.MathUtils.lerp(currentWidth, outerRadius, thicknessFillAmount)
     const taperedRadialWidth = radialWidth * arcTaperProfile
     const currentRadius = Math.max(0, outerRadius - (1 - v) * taperedRadialWidth)
+    const centerRadius = Math.max(0, outerRadius - taperedRadialWidth * 0.5)
+    const sideOffset = (0.5 - v) * taperedRadialWidth
     const lowerEdgeSpreadProfile = 1 - v
+    const normalOffset =
+      Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount +
+      lowerEdgeSpreadProfile * currentWidth * spreadAmount * arcTaperProfile
+
+    if (surfaceIndex === 1) {
+      const vertex = radialDirection.clone().multiplyScalar(centerRadius + normalOffset)
+      vertex.y -= outerRadius
+      vertex.y += ARC_VERTICAL_OFFSET
+      vertex.z = -sideOffset
+      return vertex
+    }
+
     const vertex = radialDirection.multiplyScalar(currentRadius)
     vertex.y -= outerRadius
     vertex.y += ARC_VERTICAL_OFFSET
-    vertex.z =
-      Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount +
-      lowerEdgeSpreadProfile * currentWidth * spreadAmount * arcTaperProfile
+    vertex.z = normalOffset
     return vertex
-  })
+  }, crossMesh ? 2 : 1)
+
+  return geometry
 }
 
-function generateArcRibbonMesh(params: EffectMeshParams, liftDirection = 1): THREE.BufferGeometry {
+function generateArcRibbonMesh(
+  params: EffectMeshParams,
+  liftDirection = 1,
+  crossMesh = false
+): THREE.BufferGeometry {
   const { lengthSegments, widthSegments } = getSegmentCounts(params)
   const curveAmount = getCurveAmount(params)
   const liftAmount = getTopCurveAmount(params) * liftDirection
@@ -291,7 +454,7 @@ function generateArcRibbonMesh(params: EffectMeshParams, liftDirection = 1): THR
   if (curveAmount <= 0.0001) {
     const halfLength = params.length / 2
 
-    return createGridGeometry(lengthSegments, widthSegments, (u, v) => {
+    return createGridGeometry(lengthSegments, widthSegments, (u, v, _i, _j, surfaceIndex) => {
       const tangent = new THREE.Vector3(1, 0, 0)
       const sideDirection = new THREE.Vector3(0, 1, 0)
       const normalDirection = new THREE.Vector3(0, 0, 1)
@@ -307,15 +470,21 @@ function generateArcRibbonMesh(params: EffectMeshParams, liftDirection = 1): THR
         lowerEdgeSpreadProfile * currentWidth * spreadAmount
       const twistedSideDirection = sideDirection.clone().applyQuaternion(twistRotation)
       const twistedNormalDirection = normalDirection.clone().applyQuaternion(twistRotation)
+      const surfaceSideDirection =
+        surfaceIndex === 0 ? twistedSideDirection : twistedNormalDirection
+      const surfaceNormalDirection =
+        surfaceIndex === 0
+          ? twistedNormalDirection
+          : getSurfaceNormalDirection(tangent, surfaceSideDirection)
 
       return new THREE.Vector3(
         THREE.MathUtils.lerp(-halfLength, halfLength, u),
         ARC_VERTICAL_OFFSET,
         0
       )
-        .addScaledVector(twistedSideDirection, sideOffset)
-        .addScaledVector(twistedNormalDirection, normalOffset)
-    })
+        .addScaledVector(surfaceSideDirection, sideOffset)
+        .addScaledVector(surfaceNormalDirection, normalOffset)
+    }, crossMesh ? 2 : 1)
   }
 
   const arcAngle = curveAmount * Math.PI * 2
@@ -323,7 +492,7 @@ function generateArcRibbonMesh(params: EffectMeshParams, liftDirection = 1): THR
   const thicknessFillAmount = THREE.MathUtils.clamp((params.thickness - 0.1) / 1.9, 0, 1)
   const taperAmount = getMaxTaperAmount(params)
 
-  return createGridGeometry(lengthSegments, widthSegments, (u, v) => {
+  return createGridGeometry(lengthSegments, widthSegments, (u, v, _i, _j, surfaceIndex) => {
     const angle = THREE.MathUtils.lerp(-arcAngle / 2, arcAngle / 2, u)
     const radialDirection = new THREE.Vector3(Math.sin(angle), Math.cos(angle), 0)
     const tangent = new THREE.Vector3(Math.cos(angle), -Math.sin(angle), 0)
@@ -345,14 +514,20 @@ function generateArcRibbonMesh(params: EffectMeshParams, liftDirection = 1): THR
       lowerEdgeSpreadProfile * currentWidth * spreadAmount * arcTaperProfile
     const twistedSideDirection = radialDirection.clone().applyQuaternion(twistRotation)
     const twistedNormalDirection = normalDirection.clone().applyQuaternion(twistRotation)
+    const surfaceSideDirection =
+      surfaceIndex === 0 ? twistedSideDirection : twistedNormalDirection
+    const surfaceNormalDirection =
+      surfaceIndex === 0
+        ? twistedNormalDirection
+        : getSurfaceNormalDirection(tangent, surfaceSideDirection)
     const vertex = radialDirection.clone().multiplyScalar(centerRadius)
     vertex.y -= outerRadius
     vertex.y += ARC_VERTICAL_OFFSET
     vertex
-      .addScaledVector(twistedSideDirection, sideOffset)
-      .addScaledVector(twistedNormalDirection, normalOffset)
+      .addScaledVector(surfaceSideDirection, sideOffset)
+      .addScaledVector(surfaceNormalDirection, normalOffset)
     return vertex
-  })
+  }, crossMesh ? 2 : 1)
 }
 
 export function generateDoubleSidedArcRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
@@ -393,7 +568,8 @@ function generateSpiralMesh(params: EffectMeshParams): THREE.BufferGeometry {
 
 function generateRisingSpiralRibbonMesh(
   params: EffectMeshParams,
-  liftDirection = 1
+  liftDirection = 1,
+  crossMesh = false
 ): THREE.BufferGeometry {
   const { lengthSegments, widthSegments } = getSegmentCounts(params)
   const halfHeight = params.length / 2
@@ -413,7 +589,7 @@ function generateRisingSpiralRibbonMesh(
     centerPoints.push(new THREE.Vector3(Math.cos(angle) * radius, y, Math.sin(angle) * radius))
   }
 
-  return createGridGeometry(lengthSegments, widthSegments, (u, v, i) => {
+  return createGridGeometry(lengthSegments, widthSegments, (u, v, i, _j, surfaceIndex) => {
     const tangent = getPolylineTangent(centerPoints, i)
     const radialDirection = getHorizontalRadialDirection(centerPoints[i])
     const sideDirection = getSurfaceSideDirection(tangent, radialDirection)
@@ -424,11 +600,17 @@ function generateRisingSpiralRibbonMesh(
     )
     const twistedSideDirection = sideDirection.clone().applyQuaternion(twistRotation)
     const twistedNormalDirection = normalDirection.clone().applyQuaternion(twistRotation)
+    const surfaceSideDirection =
+      surfaceIndex === 0 ? twistedSideDirection : twistedNormalDirection
+    const surfaceNormalDirection =
+      surfaceIndex === 0
+        ? twistedNormalDirection
+        : getSurfaceNormalDirection(tangent, surfaceSideDirection)
     const currentWidth = getTaperedWidth(params, u)
-    const vertex = centerPoints[i].clone().addScaledVector(twistedSideDirection, (v - 0.5) * currentWidth)
-    vertex.addScaledVector(twistedNormalDirection, Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount)
+    const vertex = centerPoints[i].clone().addScaledVector(surfaceSideDirection, (v - 0.5) * currentWidth)
+    vertex.addScaledVector(surfaceNormalDirection, Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount)
     return vertex
-  })
+  }, crossMesh ? 2 : 1)
 }
 
 export function generateDoubleSidedRisingSpiralRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
@@ -443,7 +625,8 @@ export function generateDoubleSidedRisingSpiralRibbonMesh(params: EffectMeshPara
 
 function generateCylinderSpiralRibbonMesh(
   params: EffectMeshParams,
-  liftDirection = 1
+  liftDirection = 1,
+  crossMesh = false
 ): THREE.BufferGeometry {
   const { lengthSegments, widthSegments } = getSegmentCounts(params)
   const halfHeight = params.length / 2
@@ -466,7 +649,7 @@ function generateCylinderSpiralRibbonMesh(
     centerPoints.push(new THREE.Vector3(Math.cos(angle) * radius, y, Math.sin(angle) * radius))
   }
 
-  return createGridGeometry(lengthSegments, widthSegments, (u, v, i) => {
+  return createGridGeometry(lengthSegments, widthSegments, (u, v, i, _j, surfaceIndex) => {
     const tangent = getPolylineTangent(centerPoints, i)
     const radialDirection = getHorizontalRadialDirection(centerPoints[i])
     const surfaceNormalDirection = getSurfaceSideDirection(tangent, radialDirection)
@@ -477,11 +660,18 @@ function generateCylinderSpiralRibbonMesh(
     )
     const twistedSideDirection = sideDirection.clone().applyQuaternion(twistRotation)
     const twistedNormalDirection = surfaceNormalDirection.clone().applyQuaternion(twistRotation)
+    const crossSurfaceSideDirection =
+      surfaceIndex === 0 ? twistedSideDirection : twistedNormalDirection
+    const crossSurfaceNormalDirection =
+      surfaceIndex === 0
+        ? twistedNormalDirection
+        : getSurfaceNormalDirection(tangent, crossSurfaceSideDirection)
     const currentWidth = getTaperedWidth(params, u)
-    const vertex = centerPoints[i].clone().addScaledVector(twistedSideDirection, (v - 0.5) * currentWidth)
-    vertex.addScaledVector(twistedNormalDirection, Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount)
+    const sideOffset = (surfaceIndex === 1 ? 0.5 - v : v - 0.5) * currentWidth
+    const vertex = centerPoints[i].clone().addScaledVector(crossSurfaceSideDirection, sideOffset)
+    vertex.addScaledVector(crossSurfaceNormalDirection, Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount)
     return vertex
-  })
+  }, crossMesh ? 2 : 1)
 }
 
 export function generateDoubleSidedCylinderSpiralRibbonMesh(params: EffectMeshParams): THREE.BufferGeometry {
@@ -515,43 +705,61 @@ function generateBurstMesh(params: EffectMeshParams): THREE.BufferGeometry {
   })
 }
 
-function generatePlaneMesh(params: EffectMeshParams): THREE.BufferGeometry {
+function generatePlaneMesh(params: EffectMeshParams, crossMesh = false): THREE.BufferGeometry {
   const { lengthSegments, widthSegments } = getSegmentCounts(params)
   const halfLength = params.length / 2
   const liftAmount = getTopCurveAmount(params)
 
-  return createGridGeometry(lengthSegments, widthSegments, (u, v) => {
+  return createGridGeometry(lengthSegments, widthSegments, (u, v, _i, _j, surfaceIndex) => {
     const currentWidth = getTaperedWidth(params, u)
+    const sideOffset = (0.5 - v) * currentWidth
+    const normalOffset = Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount
+
+    if (surfaceIndex === 1) {
+      return new THREE.Vector3(
+        normalOffset,
+        THREE.MathUtils.lerp(-halfLength, halfLength, u),
+        sideOffset
+      )
+    }
+
     return new THREE.Vector3(
-      (0.5 - v) * currentWidth,
+      sideOffset,
       THREE.MathUtils.lerp(-halfLength, halfLength, u),
-      Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount
+      normalOffset
     )
-  })
+  }, crossMesh ? 2 : 1)
 }
 
-function generateFlatRingMesh(params: EffectMeshParams): THREE.BufferGeometry {
+function generateFlatRingMesh(params: EffectMeshParams, crossMesh = false): THREE.BufferGeometry {
   const radialSegments = Math.max(3, Math.floor(params.divisions))
   const widthSegments = Math.max(1, Math.floor(params.widthDivisions))
   const outerRadius = Math.max(params.length * 0.5, params.thickness, 0.001)
   const innerRadius = Math.max(outerRadius - params.thickness, 0.001)
+  const centerRadius = (outerRadius + innerRadius) * 0.5
   const liftAmount = getTopCurveAmount(params)
   const spreadAmount = Math.max(0, params.spread)
 
-  return createGridGeometry(radialSegments, widthSegments, (u, v) => {
+  return createGridGeometry(radialSegments, widthSegments, (u, v, _i, _j, surfaceIndex) => {
     const angle = u * Math.PI * 2 + params.twist * Math.PI * v
+    const radialDirection = new THREE.Vector3(Math.cos(angle), Math.sin(angle), 0)
     const radius = THREE.MathUtils.lerp(outerRadius, innerRadius, v)
     const innerEdgeProfile = v
     const z =
       Math.sin(Math.PI * v) * params.thickness * 0.5 * liftAmount +
       innerEdgeProfile * params.thickness * spreadAmount
 
+    if (surfaceIndex === 1) {
+      const sideOffset = (0.5 - v) * params.thickness
+      return radialDirection.multiplyScalar(centerRadius + z).setZ(sideOffset)
+    }
+
     return new THREE.Vector3(
-      Math.cos(angle) * radius,
-      Math.sin(angle) * radius,
+      radialDirection.x * radius,
+      radialDirection.y * radius,
       z
     )
-  })
+  }, crossMesh ? 2 : 1)
 }
 
 function generateSphereMesh(params: EffectMeshParams): THREE.BufferGeometry {
@@ -638,6 +846,21 @@ export function generateDoubleSidedOpenCylinderMesh(params: EffectMeshParams): T
   return combinedGeometry
 }
 
+function generateCrossOpenCylinderMesh(
+  params: EffectMeshParams,
+  liftDirection = 1
+): THREE.BufferGeometry {
+  const primaryGeometry = generateOpenCylinderMesh(params, liftDirection)
+  const crossGeometry = generateOpenCylinderMesh(params, liftDirection)
+  crossGeometry.rotateX(Math.PI * 0.5)
+  rotateUVs180(crossGeometry)
+  const combinedGeometry = combineSameFacingGeometries(primaryGeometry, crossGeometry)
+
+  primaryGeometry.dispose()
+  crossGeometry.dispose()
+  return combinedGeometry
+}
+
 function generateBeamDomeMesh(params: EffectMeshParams): THREE.BufferGeometry {
   const capSegments = Math.max(1, Math.floor(params.divisions))
   const cylinderSegments = Math.max(1, Math.floor(params.cylinderDivisions ?? 2))
@@ -695,7 +918,8 @@ function generateBeamDomeMesh(params: EffectMeshParams): THREE.BufferGeometry {
 function createGridGeometry(
   lengthSegments: number,
   widthSegments: number,
-  createVertex: (u: number, v: number, i: number, j: number) => THREE.Vector3
+  createVertex: (u: number, v: number, i: number, j: number, surfaceIndex: number) => THREE.Vector3,
+  surfaceCount = 1
 ): THREE.BufferGeometry {
   const uRows: number[] = []
 
@@ -703,42 +927,55 @@ function createGridGeometry(
     uRows.push(i / lengthSegments)
   }
 
-  return createGridGeometryFromURows(uRows, widthSegments, createVertex)
+  return createGridGeometryFromURows(uRows, widthSegments, createVertex, surfaceCount)
 }
 
 function createGridGeometryFromURows(
   uRows: number[],
   widthSegments: number,
-  createVertex: (u: number, v: number, i: number, j: number) => THREE.Vector3
+  createVertex: (u: number, v: number, i: number, j: number, surfaceIndex: number) => THREE.Vector3,
+  surfaceCount = 1
 ): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry()
   const vertices: number[] = []
   const uvs: number[] = []
   const lengthSegments = uRows.length - 1
 
-  for (let i = 0; i < uRows.length; i++) {
-    const u = uRows[i]
+  for (let surfaceIndex = 0; surfaceIndex < surfaceCount; surfaceIndex++) {
+    for (let i = 0; i < uRows.length; i++) {
+      const rowIndex = surfaceIndex === 0 ? i : lengthSegments - i
+      const u = uRows[rowIndex]
+      const uvU = uRows[i]
 
-    for (let j = 0; j <= widthSegments; j++) {
-      const v = j / widthSegments
-      const vertex = createVertex(u, v, i, j)
-      vertices.push(vertex.x, vertex.y, vertex.z)
-      uvs.push(u, 1 - v)
+      for (let j = 0; j <= widthSegments; j++) {
+        const v = j / widthSegments
+        const vertex = createVertex(u, v, rowIndex, j, surfaceIndex)
+        vertices.push(vertex.x, vertex.y, vertex.z)
+        uvs.push(
+          surfaceIndex === 0 ? uvU : 1 - uvU,
+          surfaceIndex === 0 ? 1 - v : v
+        )
+      }
     }
   }
 
   const indices: number[] = []
   const rowStride = widthSegments + 1
+  const surfaceStride = rowStride * (lengthSegments + 1)
 
-  for (let i = 0; i < lengthSegments; i++) {
-    for (let j = 0; j < widthSegments; j++) {
-      const a = i * rowStride + j
-      const b = a + 1
-      const c = (i + 1) * rowStride + j
-      const d = c + 1
+  for (let surfaceIndex = 0; surfaceIndex < surfaceCount; surfaceIndex++) {
+    const surfaceOffset = surfaceIndex * surfaceStride
 
-      indices.push(a, c, b)
-      indices.push(b, c, d)
+    for (let i = 0; i < lengthSegments; i++) {
+      for (let j = 0; j < widthSegments; j++) {
+        const a = surfaceOffset + i * rowStride + j
+        const b = a + 1
+        const c = surfaceOffset + (i + 1) * rowStride + j
+        const d = c + 1
+
+        indices.push(a, c, b)
+        indices.push(b, c, d)
+      }
     }
   }
 
@@ -748,6 +985,69 @@ function createGridGeometryFromURows(
   geometry.computeVertexNormals()
 
   return geometry
+}
+
+function combineSameFacingGeometries(
+  primaryGeometry: THREE.BufferGeometry,
+  secondaryGeometry: THREE.BufferGeometry
+): THREE.BufferGeometry {
+  const primaryPosition = primaryGeometry.getAttribute('position')
+  const secondaryPosition = secondaryGeometry.getAttribute('position')
+  const primaryUV = primaryGeometry.getAttribute('uv')
+  const secondaryUV = secondaryGeometry.getAttribute('uv')
+  const primaryIndex = primaryGeometry.index
+  const secondaryIndex = secondaryGeometry.index
+  const positions: number[] = []
+  const uvs: number[] = []
+  const indices: number[] = []
+
+  for (let i = 0; i < primaryPosition.count; i++) {
+    positions.push(primaryPosition.getX(i), primaryPosition.getY(i), primaryPosition.getZ(i))
+
+    if (primaryUV) {
+      uvs.push(primaryUV.getX(i), primaryUV.getY(i))
+    }
+  }
+
+  for (let i = 0; i < secondaryPosition.count; i++) {
+    positions.push(secondaryPosition.getX(i), secondaryPosition.getY(i), secondaryPosition.getZ(i))
+
+    if (secondaryUV) {
+      uvs.push(secondaryUV.getX(i), secondaryUV.getY(i))
+    }
+  }
+
+  if (primaryIndex) {
+    for (let i = 0; i < primaryIndex.count; i++) {
+      indices.push(primaryIndex.getX(i))
+    }
+  } else {
+    for (let i = 0; i < primaryPosition.count; i++) {
+      indices.push(i)
+    }
+  }
+
+  const secondaryVertexOffset = primaryPosition.count
+  if (secondaryIndex) {
+    for (let i = 0; i < secondaryIndex.count; i++) {
+      indices.push(secondaryVertexOffset + secondaryIndex.getX(i))
+    }
+  } else {
+    for (let i = 0; i < secondaryPosition.count; i++) {
+      indices.push(secondaryVertexOffset + i)
+    }
+  }
+
+  const combinedGeometry = new THREE.BufferGeometry()
+  combinedGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3))
+
+  if (primaryUV && secondaryUV) {
+    combinedGeometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2))
+  }
+
+  combinedGeometry.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1))
+  combinedGeometry.computeVertexNormals()
+  return combinedGeometry
 }
 
 function combineOppositeFacingGeometries(

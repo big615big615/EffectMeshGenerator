@@ -318,6 +318,18 @@ const DOUBLE_SIDED_MESH_TYPES: ReadonlySet<EffectMeshType> = new Set([
   'openCylinder',
 ])
 
+const CROSS_MESH_TYPES: ReadonlySet<EffectMeshType> = new Set([
+  'slash',
+  'arc',
+  'arcRibbon',
+  'ribbon',
+  'lightningRibbon',
+  'risingSpiralRibbon',
+  'cylinderSpiralRibbon',
+  'plane',
+  'flatRing',
+])
+
 const HIDDEN_MIRROR_Z_MESH_TYPES: ReadonlySet<EffectMeshType> = new Set([
   'sphere',
   'hemisphere',
@@ -352,6 +364,8 @@ interface ControlPanelProps {
   setMirrorZ: (value: boolean) => void
   doubleSided: boolean
   setDoubleSided: (value: boolean) => void
+  crossMesh: boolean
+  setCrossMesh: (value: boolean) => void
   showPolygonCount: boolean
   setShowPolygonCount: (value: boolean) => void
   showPivot: boolean
@@ -402,6 +416,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   setMirrorZ,
   doubleSided,
   setDoubleSided,
+  crossMesh,
+  setCrossMesh,
   showPolygonCount,
   setShowPolygonCount,
   showPivot,
@@ -467,6 +483,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const isSphericalMesh =
     meshType === 'sphere' || meshType === 'hemisphere' || meshType === 'zHemisphere'
   const showsDoubleSided = DOUBLE_SIDED_MESH_TYPES.has(meshType)
+  const showsCrossMesh = CROSS_MESH_TYPES.has(meshType)
   const showsMirrorZ = !showsDoubleSided && !HIDDEN_MIRROR_Z_MESH_TYPES.has(meshType)
   const divisionsMin =
     isSphericalMesh || meshType === 'beamDome'
@@ -478,6 +495,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const handleMeshTypeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const nextMeshType = event.target.value as EffectMeshType
     setMeshType(nextMeshType)
+    setCrossMesh(false)
 
     if (nextMeshType === 'slash') {
       applyMeshParams(SLASH_DEFAULT_PARAMS)
@@ -1093,6 +1111,19 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             onClick={() => setDoubleSided(!doubleSided)}
           >
             {doubleSided ? t.on : t.off}
+          </button>
+        </div>
+      )}
+
+      {showsCrossMesh && (
+        <div className="control-group toggle-row">
+          <span>{t.crossMesh}</span>
+          <button
+            type="button"
+            className={`toggle-btn ${crossMesh ? 'active' : ''}`}
+            onClick={() => setCrossMesh(!crossMesh)}
+          >
+            {crossMesh ? t.on : t.off}
           </button>
         </div>
       )}

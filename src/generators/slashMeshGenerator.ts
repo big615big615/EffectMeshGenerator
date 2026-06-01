@@ -11,7 +11,8 @@ export function generateSlashMesh(
   endTaper = taper,
   twist = 0,
   spread = 0,
-  liftDirection = 1
+  liftDirection = 1,
+  crossMesh = false
 ): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry()
   const lengthSegments = Math.max(1, Math.floor(divisions))
@@ -38,56 +39,73 @@ export function generateSlashMesh(
 
   const vertices: number[] = []
   const uvs: number[] = []
+  const surfaceCount = crossMesh ? 2 : 1
 
-  for (let i = 0; i <= lengthSegments; i++) {
-    const centerPoint = centerPoints[i]
-    const widthDirection = new THREE.Vector3(1, 0, 0)
-    const tangent = getCenterlineTangent(centerPoints, i)
-    const normalDirection = getSurfaceNormal(widthDirection, tangent)
-    const u = i / lengthSegments
-    const twistRotation = new THREE.Quaternion().setFromAxisAngle(
-      tangent,
-      (u - 0.5) * Math.PI * twist
-    )
-    const twistedWidthDirection = widthDirection.clone().applyQuaternion(twistRotation)
-    const twistedNormalDirection = normalDirection.clone().applyQuaternion(twistRotation)
-    const taperProfile = getTaperProfile(u, taperAmount, endTaperAmount)
-    const currentThickness =
-      thickness *
-      taperProfile *
-      (1 + spreadAmount * u)
-    const tubeRadius = currentThickness / 2
-
-    for (let j = 0; j <= widthSegments; j++) {
-      const v = j / widthSegments
-      const tubeAngle = v * Math.PI
-      const flatWidthOffset = (1 - v * 2) * tubeRadius
-      const tubeWidthOffset = Math.cos(tubeAngle) * tubeRadius
-      const widthOffset = THREE.MathUtils.lerp(flatWidthOffset, tubeWidthOffset, tubeAmount)
-      const tubeProfile = Math.sin(tubeAngle)
-      const vertex = centerPoint.clone().addScaledVector(twistedWidthDirection, widthOffset)
-      vertex.addScaledVector(
-        twistedNormalDirection,
-        tubeProfile * tubeRadius * tubeAmount * liftDirection
+  for (let surfaceIndex = 0; surfaceIndex < surfaceCount; surfaceIndex++) {
+    for (let i = 0; i <= lengthSegments; i++) {
+      const lengthIndex = surfaceIndex === 0 ? i : lengthSegments - i
+      const centerPoint = centerPoints[lengthIndex]
+      const widthDirection = new THREE.Vector3(1, 0, 0)
+      const tangent = getCenterlineTangent(centerPoints, lengthIndex)
+      const normalDirection = getSurfaceNormal(widthDirection, tangent)
+      const u = lengthIndex / lengthSegments
+      const uvU = i / lengthSegments
+      const twistRotation = new THREE.Quaternion().setFromAxisAngle(
+        tangent,
+        (u - 0.5) * Math.PI * twist
       )
+      const twistedWidthDirection = widthDirection.clone().applyQuaternion(twistRotation)
+      const twistedNormalDirection = normalDirection.clone().applyQuaternion(twistRotation)
+      const surfaceWidthDirection =
+        surfaceIndex === 0 ? twistedWidthDirection : twistedNormalDirection
+      const surfaceNormalDirection =
+        surfaceIndex === 0 ? twistedNormalDirection : getSurfaceNormal(surfaceWidthDirection, tangent)
+      const taperProfile = getTaperProfile(u, taperAmount, endTaperAmount)
+      const currentThickness =
+        thickness *
+        taperProfile *
+        (1 + spreadAmount * u)
+      const tubeRadius = currentThickness / 2
 
-      vertices.push(vertex.x, vertex.y, vertex.z)
-      uvs.push(u, 1 - v)
+      for (let j = 0; j <= widthSegments; j++) {
+        const v = j / widthSegments
+        const tubeAngle = v * Math.PI
+        const flatWidthOffset = (1 - v * 2) * tubeRadius
+        const tubeWidthOffset = Math.cos(tubeAngle) * tubeRadius
+        const widthOffset = THREE.MathUtils.lerp(flatWidthOffset, tubeWidthOffset, tubeAmount)
+        const tubeProfile = Math.sin(tubeAngle)
+        const vertex = centerPoint.clone().addScaledVector(surfaceWidthDirection, widthOffset)
+        vertex.addScaledVector(
+          surfaceNormalDirection,
+          tubeProfile * tubeRadius * tubeAmount * liftDirection
+        )
+
+        vertices.push(vertex.x, vertex.y, vertex.z)
+        uvs.push(
+          surfaceIndex === 0 ? uvU : 1 - uvU,
+          surfaceIndex === 0 ? 1 - v : v
+        )
+      }
     }
   }
 
   const indices: number[] = []
   const rowStride = widthSegments + 1
+  const surfaceStride = rowStride * (lengthSegments + 1)
 
-  for (let i = 0; i < lengthSegments; i++) {
-    for (let j = 0; j < widthSegments; j++) {
-      const a = i * rowStride + j
-      const b = a + 1
-      const c = (i + 1) * rowStride + j
-      const d = c + 1
+  for (let surfaceIndex = 0; surfaceIndex < surfaceCount; surfaceIndex++) {
+    const surfaceOffset = surfaceIndex * surfaceStride
 
-      indices.push(a, c, b)
-      indices.push(b, c, d)
+    for (let i = 0; i < lengthSegments; i++) {
+      for (let j = 0; j < widthSegments; j++) {
+        const a = surfaceOffset + i * rowStride + j
+        const b = a + 1
+        const c = surfaceOffset + (i + 1) * rowStride + j
+        const d = c + 1
+
+        indices.push(a, c, b)
+        indices.push(b, c, d)
+      }
     }
   }
 
