@@ -343,6 +343,9 @@ const CONTACT_URLS: Record<Language, string> = {
 }
 const REPOSITORY_URL = 'https://github.com/big615big615/EffectMeshGenerator'
 
+// Management controls: set to true when exposing recording/debug-only controls.
+const SHOW_MANAGEMENT_CONTROLS = false
+
 interface ControlPanelProps {
   meshType: EffectMeshType
   setMeshType: (value: EffectMeshType) => void
@@ -357,6 +360,12 @@ interface ControlPanelProps {
   setShowTextureIn3D: (value: boolean) => void
   animateUVScroll: boolean
   setAnimateUVScroll: (value: boolean) => void
+  autoRotateY: boolean
+  setAutoRotateY: (value: boolean) => void
+  autoRotateYSpeed: number
+  setAutoRotateYSpeed: (value: number) => void
+  showMeshTypeGrid: boolean
+  setShowMeshTypeGrid: (value: boolean) => void
   onUVScrollReset: () => void
   uvRotation: number
   setUVRotation: (value: number) => void
@@ -409,6 +418,12 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   setShowTextureIn3D,
   animateUVScroll,
   setAnimateUVScroll,
+  autoRotateY,
+  setAutoRotateY,
+  autoRotateYSpeed,
+  setAutoRotateYSpeed,
+  showMeshTypeGrid,
+  setShowMeshTypeGrid,
   onUVScrollReset,
   uvRotation,
   setUVRotation,
@@ -494,6 +509,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
   const handleMeshTypeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const nextMeshType = event.target.value as EffectMeshType
+    setShowMeshTypeGrid(false)
     setMeshType(nextMeshType)
     setCrossMesh(false)
 
@@ -855,6 +871,16 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="control-group">
+        <button
+          type="button"
+          className={`mesh-grid-toggle-btn ${showMeshTypeGrid ? 'active' : ''}`}
+          onClick={() => setShowMeshTypeGrid(!showMeshTypeGrid)}
+        >
+          {t.thumbnailSelect}
+        </button>
       </div>
 
       <div className="control-group">
@@ -1329,6 +1355,37 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           </label>
         </div>
       </div>
+
+      {SHOW_MANAGEMENT_CONTROLS && (
+        <>
+          <div className="control-group toggle-row">
+            <span>{t.autoRotateY}</span>
+            <button
+              type="button"
+              className={`toggle-btn ${autoRotateY ? 'active' : ''}`}
+              onClick={() => setAutoRotateY(!autoRotateY)}
+            >
+              {autoRotateY ? t.on : t.off}
+            </button>
+          </div>
+
+          <div className="control-group">
+            <label htmlFor="autoRotateYSpeed">{t.autoRotateYSpeed}</label>
+            <input
+              id="autoRotateYSpeed"
+              type="range"
+              min="1"
+              max="60"
+              step="1"
+              value={autoRotateYSpeed}
+              onChange={(e) => setAutoRotateYSpeed(parseFloat(e.target.value))}
+            />
+            <span className="value">
+              {autoRotateYSpeed.toFixed(0)} {t.degrees}/s
+            </span>
+          </div>
+        </>
+      )}
 
       <div className="control-group">
         <label>{t.scale}</label>

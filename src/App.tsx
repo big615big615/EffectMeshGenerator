@@ -4,6 +4,7 @@ import Viewport from './components/Viewport'
 import ControlPanel from './components/ControlPanel'
 import type { EffectMeshParams, EffectMeshType } from './generators/effectMeshGenerator'
 import type { Language } from './i18n'
+import { getMeshTypeTemplateOptions, getMeshTypeTemplateParams } from './meshTypeTemplates'
 import './App.css'
 
 interface PivotParams {
@@ -51,6 +52,9 @@ const App: React.FC = () => {
   const [showUV, setShowUV] = useState(false)
   const [showTextureIn3D, setShowTextureIn3D] = useState(false)
   const [animateUVScroll, setAnimateUVScroll] = useState(false)
+  const [autoRotateY, setAutoRotateY] = useState(false)
+  const [autoRotateYSpeed, setAutoRotateYSpeed] = useState(12)
+  const [showMeshTypeGrid, setShowMeshTypeGrid] = useState(false)
   const [uvScrollResetVersion, setUVScrollResetVersion] = useState(0)
   const [uvRotation, setUVRotation] = useState(0)
   const [mirrorZ, setMirrorZ] = useState(false)
@@ -87,6 +91,23 @@ const App: React.FC = () => {
     setShowUV(true)
   }
 
+  const handleMeshTypeTemplateSelect = (
+    nextMeshType: EffectMeshType,
+    shouldCloseMeshTypeGrid = false
+  ) => {
+    const options = getMeshTypeTemplateOptions(nextMeshType)
+    setMeshType(nextMeshType)
+    setParams(getMeshTypeTemplateParams(nextMeshType))
+    setMirrorZ(options.mirrorZ)
+    setDoubleSided(options.doubleSided)
+    setCrossMesh(options.crossMesh)
+
+    if (shouldCloseMeshTypeGrid) {
+      setShowMeshTypeGrid(false)
+      setIsControlPanelCollapsed(false)
+    }
+  }
+
   const panelToggleLabel = isControlPanelCollapsed
     ? language === 'ja'
       ? '右側のUIを開く'
@@ -105,6 +126,9 @@ const App: React.FC = () => {
           showUV={showUV}
           showTextureIn3D={showTextureIn3D}
           animateUVScroll={animateUVScroll}
+          autoRotateY={autoRotateY}
+          autoRotateYSpeed={autoRotateYSpeed}
+          showMeshTypeGrid={showMeshTypeGrid}
           uvScrollResetVersion={uvScrollResetVersion}
           uvRotation={uvRotation}
           mirrorZ={mirrorZ}
@@ -118,6 +142,7 @@ const App: React.FC = () => {
           textureSource={texturePreview}
           language={language}
           onMeshReady={setCurrentMesh}
+          onMeshTypeSelect={(nextMeshType) => handleMeshTypeTemplateSelect(nextMeshType, true)}
         />
       </div>
       <button
@@ -151,6 +176,12 @@ const App: React.FC = () => {
             setShowTextureIn3D={setShowTextureIn3D}
             animateUVScroll={animateUVScroll}
             setAnimateUVScroll={setAnimateUVScroll}
+            autoRotateY={autoRotateY}
+            setAutoRotateY={setAutoRotateY}
+            autoRotateYSpeed={autoRotateYSpeed}
+            setAutoRotateYSpeed={setAutoRotateYSpeed}
+            showMeshTypeGrid={showMeshTypeGrid}
+            setShowMeshTypeGrid={setShowMeshTypeGrid}
             onUVScrollReset={() => setUVScrollResetVersion((version) => version + 1)}
             uvRotation={uvRotation}
             setUVRotation={setUVRotation}

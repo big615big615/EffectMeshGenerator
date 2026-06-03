@@ -32,6 +32,13 @@ export interface UiText {
   showUV: string
   texture3D: string
   uvScroll: string
+  autoRotateY: string
+  autoRotateYSpeed: string
+  meshTypeGrid: string
+  thumbnailSelect: string
+  thumbnailRotationExport: string
+  thumbnailRotationCopied: string
+  thumbnailRotationLogged: string
   reset: string
   texture: string
   chooseImage: string
@@ -150,6 +157,13 @@ export const uiText: Record<Language, UiText> = {
     showUV: 'UV表示',
     texture3D: 'テクスチャ表示',
     uvScroll: 'UVスクロール',
+    autoRotateY: '撮影用Y回転',
+    autoRotateYSpeed: 'Y回転速度',
+    meshTypeGrid: 'サムネイルグリッド',
+    thumbnailSelect: 'サムネイル選択',
+    thumbnailRotationExport: '角度を出力',
+    thumbnailRotationCopied: 'コピーしました',
+    thumbnailRotationLogged: 'コンソールへ出力しました',
     reset: 'リセット',
     texture: 'テクスチャ',
     chooseImage: '画像を選択',
@@ -249,6 +263,13 @@ export const uiText: Record<Language, UiText> = {
     showUV: 'Show UV',
     texture3D: 'Texture Display',
     uvScroll: 'UV Scroll',
+    autoRotateY: 'Y Auto Rotate',
+    autoRotateYSpeed: 'Y Rotation Speed',
+    meshTypeGrid: 'Thumbnail Grid',
+    thumbnailSelect: 'Thumbnail Select',
+    thumbnailRotationExport: 'Export Angles',
+    thumbnailRotationCopied: 'Copied',
+    thumbnailRotationLogged: 'Logged to console',
     reset: 'Reset',
     texture: 'Texture',
     chooseImage: 'Choose Image',

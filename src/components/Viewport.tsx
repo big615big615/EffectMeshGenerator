@@ -16,6 +16,11 @@ import {
   type EffectMeshType,
 } from '../generators/effectMeshGenerator'
 import { uiText, type Language } from '../i18n'
+import {
+  getMeshTypeTemplateOptions,
+  getMeshTypeTemplateParams,
+  MESH_TYPE_OPTION_VALUES,
+} from '../meshTypeTemplates'
 import './Viewport.css'
 
 const UV_VIEW_PADDING = 1.08
@@ -25,6 +30,49 @@ const FRONT_SURFACE_EMISSIVE = 0x00aa44
 const BACK_SURFACE_COLOR = 0xff4f8b
 const BACK_SURFACE_EMISSIVE = 0x66152d
 const UV_SCROLL_SPEED = 0.35
+const THUMBNAIL_CAMERA_SIZE = 1.55
+
+// Management controls: set to true when exposing thumbnail angle export.
+const SHOW_MANAGEMENT_CONTROLS = false
+
+interface ThumbnailRotationDegrees {
+  x: number
+  y: number
+}
+
+const DEFAULT_THUMBNAIL_ROTATION: ThumbnailRotationDegrees = { x: -12, y: 34 }
+const THUMBNAIL_INITIAL_ROTATIONS: Partial<Record<EffectMeshType, ThumbnailRotationDegrees>> = {
+  slash: { x: 1.178, y: -28.452 },
+  arc: { x: 6.908, y: -32.463 },
+  openCylinder: { x: 16.648, y: 30.562 },
+  arcRibbon: { x: 3.47, y: -10.118 },
+  ribbon: { x: 0.032, y: 11.082 },
+  lightningRibbon: { x: 2.324, y: 9.363 },
+  risingSpiralRibbon: { x: 27.534, y: 35.146 },
+  cylinderSpiralRibbon: { x: -3.406, y: 31.135 },
+  plane: { x: 1.178, y: 5.925 },
+  flatRing: { x: -8.562, y: -2.669 },
+  sphere: { x: 28.107, y: 33.427 },
+  hemisphere: { x: 27.534, y: 26.552 },
+  zHemisphere: { x: 18.94, y: -61.111 },
+  beamDome: { x: 28.107, y: -33.036 },
+}
+
+interface MeshThumbnailItem {
+  scene: THREE.Scene
+  camera: THREE.OrthographicCamera
+  mesh: THREE.Mesh
+  rotationX: number
+  rotationY: number
+}
+
+interface MeshThumbnailDragState {
+  itemIndex: number
+  startX: number
+  startY: number
+  startRotationX: number
+  startRotationY: number
+}
 
 interface TextureSource {
   url: string
@@ -38,6 +86,9 @@ interface ViewportProps {
   showUV: boolean
   showTextureIn3D: boolean
   animateUVScroll: boolean
+  autoRotateY: boolean
+  autoRotateYSpeed: number
+  showMeshTypeGrid: boolean
   uvScrollResetVersion: number
   uvRotation: number
   mirrorZ: boolean
@@ -63,6 +114,7 @@ interface ViewportProps {
   textureSource: TextureSource | null
   language: Language
   onMeshReady?: (mesh: THREE.Mesh) => void
+  onMeshTypeSelect?: (meshType: EffectMeshType) => void
 }
 
 const Viewport: React.FC<ViewportProps> = ({
@@ -72,6 +124,9 @@ const Viewport: React.FC<ViewportProps> = ({
   showUV,
   showTextureIn3D,
   animateUVScroll,
+  autoRotateY,
+  autoRotateYSpeed,
+  showMeshTypeGrid,
   uvScrollResetVersion,
   uvRotation,
   mirrorZ,
@@ -85,8 +140,11 @@ const Viewport: React.FC<ViewportProps> = ({
   textureSource,
   language,
   onMeshReady,
+  onMeshTypeSelect,
 }) => {
   const [polygonCount, setPolygonCount] = useState(0)
+  const [thumbnailColumns, setThumbnailColumns] = useState(4)
+  const [thumbnailRotationExportMessage, setThumbnailRotationExportMessage] = useState('')
   const t = uiText[language]
   const containerRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
@@ -105,6 +163,80 @@ const Viewport: React.FC<ViewportProps> = ({
   const showUVRef = useRef(showUV)
   const showSurfaceTextureRef = useRef(showUV || showTextureIn3D)
   const animateUVScrollRef = useRef(animateUVScroll)
+  const autoRotateYRef = useRef(autoRotateY)
+  const autoRotateYSpeedRef = useRef(autoRotateYSpeed)
+  const showMeshTypeGridRef = useRef(showMeshTypeGrid)
+  const rotationRef = useRef(rotation)
+  const autoRotateYOffsetRef = useRef(0)
+  const meshThumbnailItemsRef = useRef<MeshThumbnailItem[]>([])
+  const meshThumbnailDragRef = useRef<MeshThumbnailDragState | null>(null)
+  const meshThumbnailGridNeedsRenderRef = useRef(true)
+
+  const markMeshThumbnailGridDirty = () => {
+    meshThumbnailGridNeedsRenderRef.current = true
+  }
+
+  const applyMeshRotation = (yOffsetDegrees = 0) => {
+    if (!meshRef.current) return
+
+    const currentRotation = rotationRef.current
+    meshRef.current.rotation.set(
+      THREE.MathUtils.degToRad(currentRotation.x),
+      THREE.MathUtils.degToRad(currentRotation.y + yOffsetDegrees),
+      THREE.MathUtils.degToRad(currentRotation.z)
+    )
+  }
+
+  const renderPreviewScene = (
+    renderer: THREE.WebGLRenderer,
+    scene: THREE.Scene,
+    camera: THREE.PerspectiveCamera
+  ) => {
+    applyMeshRotation(autoRotateYRef.current ? autoRotateYOffsetRef.current : 0)
+    renderer.render(scene, camera)
+    applyMeshRotation(0)
+  }
+
+  const renderMeshThumbnailGrid = (
+    renderer: THREE.WebGLRenderer,
+    width: number,
+    height: number
+  ) => {
+    const items = meshThumbnailItemsRef.current
+    if (items.length === 0) return
+
+    const columns = getThumbnailColumnCount(width, items.length)
+    const rows = Math.ceil(items.length / columns)
+    const cellWidth = width / columns
+    const cellHeight = height / rows
+    const yRotationOffset = autoRotateYRef.current ? THREE.MathUtils.degToRad(autoRotateYOffsetRef.current) : 0
+
+    renderer.setScissorTest(true)
+
+    items.forEach((item, index) => {
+      const column = index % columns
+      const row = Math.floor(index / columns)
+      const viewportX = Math.floor(column * cellWidth)
+      const viewportY = Math.floor(height - (row + 1) * cellHeight)
+      const viewportWidth = Math.ceil(cellWidth)
+      const viewportHeight = Math.ceil(cellHeight)
+
+      updateThumbnailCamera(item.camera, viewportWidth, viewportHeight)
+      item.mesh.rotation.set(
+        item.rotationX,
+        item.rotationY + yRotationOffset,
+        0
+      )
+
+      renderer.setViewport(viewportX, viewportY, viewportWidth, viewportHeight)
+      renderer.setScissor(viewportX, viewportY, viewportWidth, viewportHeight)
+      renderer.setClearColor(0x151515, 1)
+      renderer.clear()
+      renderer.render(item.scene, item.camera)
+    })
+
+    renderer.setScissorTest(false)
+  }
 
   useEffect(() => {
     showUVRef.current = showUV
@@ -117,6 +249,41 @@ const Viewport: React.FC<ViewportProps> = ({
   useEffect(() => {
     animateUVScrollRef.current = animateUVScroll
   }, [animateUVScroll])
+
+  useEffect(() => {
+    autoRotateYRef.current = autoRotateY
+
+    if (!autoRotateY) {
+      autoRotateYOffsetRef.current = 0
+      applyMeshRotation(0)
+    }
+
+    markMeshThumbnailGridDirty()
+  }, [autoRotateY])
+
+  useEffect(() => {
+    autoRotateYSpeedRef.current = autoRotateYSpeed
+  }, [autoRotateYSpeed])
+
+  useEffect(() => {
+    showMeshTypeGridRef.current = showMeshTypeGrid
+
+    if (showMeshTypeGrid) {
+      meshThumbnailItemsRef.current = createMeshThumbnailItems()
+      setThumbnailColumns(
+        getThumbnailColumnCount(
+          containerRef.current?.clientWidth ?? 0,
+          meshThumbnailItemsRef.current.length
+        )
+      )
+      markMeshThumbnailGridDirty()
+      return
+    }
+
+    disposeMeshThumbnailItems(meshThumbnailItemsRef.current)
+    meshThumbnailItemsRef.current = []
+    meshThumbnailDragRef.current = null
+  }, [showMeshTypeGrid])
 
   useEffect(() => {
     resetPreviewTextureScroll()
@@ -237,11 +404,32 @@ const Viewport: React.FC<ViewportProps> = ({
       const deltaSeconds = (currentTime - previousTime) / 1000
       previousTime = currentTime
 
-      if (animateUVScrollRef.current) {
+      if (!showMeshTypeGridRef.current && animateUVScrollRef.current) {
         scrollPreviewTexture(deltaSeconds)
       }
 
+      if (autoRotateYRef.current) {
+        autoRotateYOffsetRef.current =
+          (autoRotateYOffsetRef.current + deltaSeconds * autoRotateYSpeedRef.current) % 360
+      }
+
       controls.update()
+
+      if (showMeshTypeGridRef.current) {
+        const currentWidth = containerRef.current?.clientWidth || width
+        const currentHeight = containerRef.current?.clientHeight || height
+
+        if (autoRotateYRef.current || meshThumbnailGridNeedsRenderRef.current) {
+          renderer.setViewport(0, 0, currentWidth, currentHeight)
+          renderer.setScissorTest(false)
+          renderer.setClearColor(0x151515, 1)
+          renderer.clear()
+          renderMeshThumbnailGrid(renderer, currentWidth, currentHeight)
+          meshThumbnailGridNeedsRenderRef.current = false
+        }
+
+        return
+      }
 
       if (showUVRef.current) {
         const currentWidth = containerRef.current?.clientWidth || width
@@ -262,7 +450,7 @@ const Viewport: React.FC<ViewportProps> = ({
         renderer.setScissor(0, 0, halfWidth, currentHeight)
         renderer.setClearColor(0x1a1a1a, 1)
         renderer.clear()
-        renderer.render(scene, camera)
+        renderPreviewScene(renderer, scene, camera)
 
         // Render right side (UV preview)
         renderer.setViewport(halfWidth, 0, uvWidth, currentHeight)
@@ -282,7 +470,7 @@ const Viewport: React.FC<ViewportProps> = ({
         renderer.setViewport(0, 0, currentWidth, currentHeight)
         renderer.setClearColor(0x1a1a1a, 1)
         renderer.clear()
-        renderer.render(scene, camera)
+        renderPreviewScene(renderer, scene, camera)
       }
     }
     animate()
@@ -299,6 +487,8 @@ const Viewport: React.FC<ViewportProps> = ({
         updateUVPreviewCamera(uvCameraRef.current, Math.ceil(newWidth / 2), newHeight)
       }
       renderer.setSize(newWidth, newHeight)
+      setThumbnailColumns(getThumbnailColumnCount(newWidth, meshThumbnailItemsRef.current.length))
+      markMeshThumbnailGridDirty()
     }
 
     const resizeObserver =
@@ -326,6 +516,8 @@ const Viewport: React.FC<ViewportProps> = ({
       if (uvBackgroundRef.current) {
         disposeUVBackground(uvBackgroundRef.current)
       }
+      disposeMeshThumbnailItems(meshThumbnailItemsRef.current)
+      meshThumbnailItemsRef.current = []
       checkerTextureRef.current?.dispose()
       uploadedTextureRef.current?.dispose()
       frontMaterial.dispose()
@@ -383,11 +575,8 @@ const Viewport: React.FC<ViewportProps> = ({
   useEffect(() => {
     if (!meshRef.current) return
 
-    meshRef.current.rotation.set(
-      THREE.MathUtils.degToRad(rotation.x),
-      THREE.MathUtils.degToRad(rotation.y),
-      THREE.MathUtils.degToRad(rotation.z)
-    )
+    rotationRef.current = rotation
+    applyMeshRotation(0)
   }, [rotation])
 
   useEffect(() => {
@@ -631,6 +820,227 @@ const Viewport: React.FC<ViewportProps> = ({
     )
     material.transparent = useTextureColor
     material.alphaTest = useTextureColor ? 0.001 : 0
+  }
+
+  const handleViewportPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!showMeshTypeGrid || event.button !== 0 || !containerRef.current) return
+
+    const itemIndex = getThumbnailIndexFromPointer(event.clientX, event.clientY)
+    if (itemIndex === null) return
+
+    const item = meshThumbnailItemsRef.current[itemIndex]
+    if (!item) return
+
+    event.preventDefault()
+    const previousCursor = document.body.style.cursor
+    const previousUserSelect = document.body.style.userSelect
+    document.body.style.cursor = 'grabbing'
+    document.body.style.userSelect = 'none'
+    meshThumbnailDragRef.current = {
+      itemIndex,
+      startX: event.clientX,
+      startY: event.clientY,
+      startRotationX: item.rotationX,
+      startRotationY: item.rotationY,
+    }
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const drag = meshThumbnailDragRef.current
+      if (!drag) return
+
+      const targetItem = meshThumbnailItemsRef.current[drag.itemIndex]
+      if (!targetItem) return
+
+      moveEvent.preventDefault()
+      const deltaX = moveEvent.clientX - drag.startX
+      const deltaY = moveEvent.clientY - drag.startY
+      targetItem.rotationY = drag.startRotationY + deltaX * 0.01
+      targetItem.rotationX = drag.startRotationX + deltaY * 0.01
+      markMeshThumbnailGridDirty()
+    }
+
+    const handlePointerUp = () => {
+      meshThumbnailDragRef.current = null
+      document.body.style.cursor = previousCursor
+      document.body.style.userSelect = previousUserSelect
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+      window.removeEventListener('pointercancel', handlePointerUp)
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    window.addEventListener('pointercancel', handlePointerUp)
+  }
+
+  const handleThumbnailRotationExport = async () => {
+    const output = createThumbnailRotationOutput()
+    console.info(output)
+
+    try {
+      await navigator.clipboard.writeText(output)
+      setThumbnailRotationExportMessage(t.thumbnailRotationCopied)
+    } catch {
+      setThumbnailRotationExportMessage(t.thumbnailRotationLogged)
+    }
+
+    window.setTimeout(() => setThumbnailRotationExportMessage(''), 2200)
+  }
+
+  const createThumbnailRotationOutput = () => {
+    const rotationLines = MESH_TYPE_OPTION_VALUES.map((value, index) => {
+      const item = meshThumbnailItemsRef.current[index]
+      const rotation = item
+        ? {
+            x: THREE.MathUtils.radToDeg(item.rotationX),
+            y: THREE.MathUtils.radToDeg(item.rotationY),
+          }
+        : getThumbnailInitialRotation(value)
+
+      return `  ${value}: { x: ${formatRotationDegrees(rotation.x)}, y: ${formatRotationDegrees(rotation.y)} },`
+    })
+
+    return [
+      'const THUMBNAIL_INITIAL_ROTATIONS: Partial<Record<EffectMeshType, ThumbnailRotationDegrees>> = {',
+      ...rotationLines,
+      '}',
+    ].join('\n')
+  }
+
+  const formatRotationDegrees = (value: number) => {
+    const roundedValue = Math.round(value * 1000) / 1000
+    return Object.is(roundedValue, -0) ? '0' : String(roundedValue)
+  }
+
+  const getThumbnailIndexFromPointer = (clientX: number, clientY: number): number | null => {
+    const container = containerRef.current
+    const items = meshThumbnailItemsRef.current
+    if (!container || items.length === 0) return null
+
+    const rect = container.getBoundingClientRect()
+    const localX = clientX - rect.left
+    const localY = clientY - rect.top
+    if (localX < 0 || localY < 0 || localX > rect.width || localY > rect.height) return null
+
+    const columns = getThumbnailColumnCount(rect.width, items.length)
+    const rows = Math.ceil(items.length / columns)
+    const column = Math.min(columns - 1, Math.floor(localX / (rect.width / columns)))
+    const row = Math.min(rows - 1, Math.floor(localY / (rect.height / rows)))
+    const itemIndex = row * columns + column
+    return itemIndex < items.length ? itemIndex : null
+  }
+
+  const getThumbnailColumnCount = (width: number, itemCount: number) => {
+    const preferredColumns = width >= 1320 ? 5 : width >= 900 ? 4 : width >= 620 ? 3 : 2
+    return Math.min(preferredColumns, Math.max(itemCount, 1))
+  }
+
+  const updateThumbnailCamera = (
+    camera: THREE.OrthographicCamera,
+    width: number,
+    height: number
+  ) => {
+    const aspect = width / Math.max(height, 1)
+    camera.left = -THUMBNAIL_CAMERA_SIZE * aspect
+    camera.right = THUMBNAIL_CAMERA_SIZE * aspect
+    camera.top = THUMBNAIL_CAMERA_SIZE
+    camera.bottom = -THUMBNAIL_CAMERA_SIZE
+    camera.updateProjectionMatrix()
+  }
+
+  const createMeshThumbnailItems = (): MeshThumbnailItem[] => {
+    return MESH_TYPE_OPTION_VALUES.map((value) => {
+      const geometry = createEffectGeometry(
+        value,
+        getMeshTypeTemplateParams(value),
+        0,
+        getMeshTypeTemplateOptions(value).mirrorZ,
+        false,
+        false,
+        { x: 0, y: 0, z: 0 }
+      )
+      normalizeThumbnailGeometry(geometry)
+
+      const scene = new THREE.Scene()
+      scene.background = new THREE.Color(0x151515)
+      scene.add(new THREE.AmbientLight(0xffffff, 0.72))
+
+      const keyLight = new THREE.DirectionalLight(0xffffff, 0.9)
+      keyLight.position.set(2.5, 3, 4)
+      scene.add(keyLight)
+
+      const frontMaterial = new THREE.MeshPhongMaterial({
+        color: FRONT_SURFACE_COLOR,
+        emissive: FRONT_SURFACE_EMISSIVE,
+        side: THREE.FrontSide,
+        shininess: 30,
+      })
+      const backMaterial = new THREE.MeshPhongMaterial({
+        color: BACK_SURFACE_COLOR,
+        emissive: BACK_SURFACE_EMISSIVE,
+        side: THREE.BackSide,
+        shininess: 24,
+      })
+      const initialRotation = getThumbnailInitialRotation(value)
+      const initialRotationX = THREE.MathUtils.degToRad(initialRotation.x)
+      const initialRotationY = THREE.MathUtils.degToRad(initialRotation.y)
+      const mesh = new THREE.Mesh(geometry, frontMaterial)
+      mesh.rotation.set(initialRotationX, initialRotationY, 0)
+      const backMesh = new THREE.Mesh(geometry, backMaterial)
+      mesh.add(backMesh)
+      mesh.add(createMeshWireframe(geometry))
+      scene.add(mesh)
+
+      const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 20)
+      camera.position.set(0, 0, 5)
+      camera.lookAt(0, 0, 0)
+      updateThumbnailCamera(camera, 1, 1)
+
+      return {
+        scene,
+        camera,
+        mesh,
+        rotationX: initialRotationX,
+        rotationY: initialRotationY,
+      }
+    })
+  }
+
+  const getThumbnailInitialRotation = (selectedMeshType: EffectMeshType): ThumbnailRotationDegrees => {
+    return THUMBNAIL_INITIAL_ROTATIONS[selectedMeshType] ?? DEFAULT_THUMBNAIL_ROTATION
+  }
+
+  const normalizeThumbnailGeometry = (geometry: THREE.BufferGeometry) => {
+    geometry.computeBoundingBox()
+    const boundingBox = geometry.boundingBox
+    if (!boundingBox) return
+
+    const center = new THREE.Vector3()
+    const size = new THREE.Vector3()
+    boundingBox.getCenter(center)
+    boundingBox.getSize(size)
+    geometry.translate(-center.x, -center.y, -center.z)
+
+    const largestAxis = Math.max(size.x, size.y, size.z, 0.001)
+    const scale = 1.9 / largestAxis
+    geometry.scale(scale, scale, scale)
+    geometry.computeBoundingSphere()
+  }
+
+  const disposeMeshThumbnailItems = (items: MeshThumbnailItem[]) => {
+    items.forEach(({ scene }) => {
+      scene.traverse((object) => {
+        if (object instanceof THREE.Mesh || object instanceof THREE.LineSegments) {
+          object.geometry.dispose()
+
+          if (Array.isArray(object.material)) {
+            object.material.forEach((material) => material.dispose())
+          } else {
+            object.material.dispose()
+          }
+        }
+      })
+    })
   }
 
   const createEffectGeometry = (
@@ -1031,8 +1441,48 @@ const Viewport: React.FC<ViewportProps> = ({
   }
 
   return (
-    <div ref={containerRef} className="viewport">
-      {showPolygonCount && (
+    <div
+      ref={containerRef}
+      className={`viewport ${showMeshTypeGrid ? 'mesh-thumbnail-grid-active' : ''}`}
+      onPointerDown={handleViewportPointerDown}
+    >
+      {showMeshTypeGrid && (
+        <div
+          className="mesh-thumbnail-grid-overlay"
+          style={{ gridTemplateColumns: `repeat(${thumbnailColumns}, 1fr)` }}
+        >
+          {SHOW_MANAGEMENT_CONTROLS && (
+            <>
+              <button
+                type="button"
+                className="mesh-thumbnail-export-btn"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={handleThumbnailRotationExport}
+              >
+                {t.thumbnailRotationExport}
+              </button>
+              {thumbnailRotationExportMessage && (
+                <div className="mesh-thumbnail-export-message">
+                  {thumbnailRotationExportMessage}
+                </div>
+              )}
+            </>
+          )}
+          {MESH_TYPE_OPTION_VALUES.map((value) => (
+            <div key={value} className="mesh-thumbnail-tile">
+              <button
+                type="button"
+                className="mesh-thumbnail-label"
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => onMeshTypeSelect?.(value)}
+              >
+                {t.meshTypes[value]}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      {showPolygonCount && !showMeshTypeGrid && (
         <div className={`polygon-count-overlay ${showUV ? 'uv-visible' : ''}`}>
           {polygonCount.toLocaleString()} {t.triangles}
         </div>

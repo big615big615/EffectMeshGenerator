@@ -134,6 +134,31 @@
   outline: none;
 }
 
+.mesh-grid-toggle-btn {
+  width: 100%;
+  background: #181818;
+  color: #e0e0e0;
+  border: 1px solid #404040;
+  border-radius: 4px;
+  padding: 9px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mesh-grid-toggle-btn:hover,
+.mesh-grid-toggle-btn:focus {
+  border-color: #00ff88;
+  outline: none;
+}
+
+.mesh-grid-toggle-btn.active {
+  background: #00ff88;
+  color: #0a0a0a;
+  border-color: #00ff88;
+}
+
 .control-group input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;

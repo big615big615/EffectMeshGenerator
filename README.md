@@ -23,6 +23,9 @@ https://github.com/big615big615/EffectMeshGenerator
 - 日本語 / English UI
 - OBJ エクスポート
 
+- 対応メッシュタイプのクロスメッシュ切り替え
+- テンプレートを見た目で選べるサムネイル選択グリッド
+
 ## Mesh Types
 
 - Slash / Straight
