@@ -635,6 +635,7 @@ const Viewport: React.FC<ViewportProps> = ({
       if (mat instanceof THREE.MeshPhongMaterial) {
         mat.wireframe = false
         mat.map = shouldShowSurfaceTexture ? texture : null
+        mat.emissiveMap = shouldShowSurfaceTexture ? texture : null
         applySurfaceAppearance(mat, isFrontSurface, shouldShowSurfaceTexture)
         mat.polygonOffset = wireframe
         mat.needsUpdate = true
@@ -711,6 +712,7 @@ const Viewport: React.FC<ViewportProps> = ({
     const updateMaterial = (mat: THREE.Material, isFrontSurface: boolean) => {
       if (mat instanceof THREE.MeshPhongMaterial) {
         mat.map = showSurfaceTextureRef.current ? texture : null
+        mat.emissiveMap = showSurfaceTextureRef.current ? texture : null
         applySurfaceAppearance(mat, isFrontSurface, showSurfaceTextureRef.current)
         mat.needsUpdate = true
       }
@@ -806,18 +808,19 @@ const Viewport: React.FC<ViewportProps> = ({
   ) => {
     material.color.setHex(
       useTextureColor
-        ? 0xffffff
+        ? 0x000000
         : isFrontSurface
           ? FRONT_SURFACE_COLOR
           : BACK_SURFACE_COLOR
     )
     material.emissive.setHex(
       useTextureColor
-        ? 0x000000
+        ? 0xffffff
         : isFrontSurface
           ? FRONT_SURFACE_EMISSIVE
           : BACK_SURFACE_EMISSIVE
     )
+    material.emissiveMap = useTextureColor ? material.map : null
     material.transparent = useTextureColor
     material.alphaTest = useTextureColor ? 0.001 : 0
   }
