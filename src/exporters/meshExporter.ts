@@ -6,6 +6,7 @@ const POSITION_MERGE_PRECISION = 100000
 
 interface ExportOBJOptions {
   mergeSharedPositions?: boolean
+  objectName?: string
 }
 
 /**
@@ -88,8 +89,12 @@ export async function exportAsOBJ(
   try {
     const clonedMesh = cloneMeshForExport(mesh)
     clonedMesh.position.set(0, 0, 0)
+    clonedMesh.name = createOBJName(fileName)
     clonedMesh.updateMatrixWorld(true)
-    const objString = exportOBJWithDisplayedUVs(clonedMesh, options)
+    const objString = exportOBJWithDisplayedUVs(clonedMesh, {
+      ...options,
+      objectName: clonedMesh.name,
+    })
     const blob = new Blob([objString], { type: 'text/plain' })
     downloadFile(blob, `${fileName}.obj`)
   } catch (error) {
@@ -128,7 +133,8 @@ function exportOBJWithDisplayedUVs(mesh: THREE.Mesh, options: ExportOBJOptions):
   mesh.updateMatrixWorld(true)
   const normalMatrix = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld)
 
-  let output = `o ${mesh.name || 'SlashMesh'}\n`
+  const objectName = options.objectName || createOBJName(mesh.name || 'SlashMesh')
+  let output = `o ${objectName}\ng ${objectName}\n`
 
   if (positions) {
     for (let i = 0; i < positions.count; i++) {
@@ -200,6 +206,10 @@ function createPositionKey(position: THREE.Vector3): string {
   const y = Math.round(position.y * POSITION_MERGE_PRECISION)
   const z = Math.round(position.z * POSITION_MERGE_PRECISION)
   return `${x},${y},${z}`
+}
+
+function createOBJName(name: string): string {
+  return name.trim().replace(/[^\w.-]+/g, '_') || 'EffectMesh'
 }
 
 /**

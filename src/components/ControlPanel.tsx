@@ -796,7 +796,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
     setIsExporting(true)
     try {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
+      const timestamp = createLocalTimestamp(new Date())
       const fileName = `${meshType}-effect-${timestamp}`
 
       switch (format) {
@@ -1536,6 +1536,21 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       )}
     </div>
   )
+}
+
+function createLocalTimestamp(date: Date): string {
+  const pad = (value: number) => value.toString().padStart(2, '0')
+
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+  ].join('-') +
+    `T${[
+      pad(date.getHours()),
+      pad(date.getMinutes()),
+      pad(date.getSeconds()),
+    ].join('-')}`
 }
 
 export default ControlPanel
