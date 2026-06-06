@@ -25,6 +25,11 @@ interface RotationParams {
   z: number
 }
 
+interface TextureTilingParams {
+  x: number
+  y: number
+}
+
 interface TexturePreview {
   url: string
   name: string
@@ -65,6 +70,7 @@ const App: React.FC = () => {
   const [pivot, setPivot] = useState<PivotParams>({ x: 0, y: 0, z: 0 })
   const [scale, setScale] = useState<ScaleParams>({ x: 1, y: 1, z: 1 })
   const [rotation, setRotation] = useState<RotationParams>({ x: 0, y: 0, z: 0 })
+  const [textureTiling, setTextureTiling] = useState<TextureTilingParams>({ x: 1, y: 1 })
   const [currentMesh, setCurrentMesh] = useState<THREE.Mesh | undefined>(undefined)
   const [texturePreview, setTexturePreview] = useState<TexturePreview | null>(null)
   const [language, setLanguage] = useState<Language>('ja')
@@ -139,6 +145,7 @@ const App: React.FC = () => {
           pivot={pivot}
           scale={scale}
           rotation={rotation}
+          textureTiling={textureTiling}
           textureSource={texturePreview}
           language={language}
           onMeshReady={setCurrentMesh}
@@ -201,6 +208,8 @@ const App: React.FC = () => {
             setScale={setScale}
             rotation={rotation}
             setRotation={setRotation}
+            textureTiling={textureTiling}
+            setTextureTiling={setTextureTiling}
             textureName={texturePreview?.name ?? null}
             onTextureFileSelect={handleTextureFileSelect}
             onTextureReset={() => setTexturePreview(null)}

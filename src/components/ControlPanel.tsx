@@ -94,6 +94,7 @@ const RISING_SPIRAL_RIBBON_DEFAULT_PARAMS: EffectMeshParams = {
   topCurve: 0.2,
   taper: 0.25,
   spread: 0.7,
+  bottomSpread: 0,
   twist: 0.4,
   waveCount: 3,
   seed: 0,
@@ -110,6 +111,7 @@ const CYLINDER_SPIRAL_RIBBON_DEFAULT_PARAMS: EffectMeshParams = {
   topCurve: 0,
   taper: 0,
   spread: 0,
+  bottomSpread: 0,
   twist: 0,
   waveCount: 3,
   seed: 0,
@@ -284,6 +286,7 @@ type EffectControlKey =
   | 'topCurve'
   | 'taper'
   | 'spread'
+  | 'bottomSpread'
   | 'twist'
   | 'waveCount'
   | 'seed'
@@ -296,8 +299,8 @@ const VISIBLE_EFFECT_CONTROLS: Record<EffectMeshType, readonly EffectControlKey[
   openCylinder: ['curve', 'topCurve', 'spread', 'twist'],
   ribbon: ['curve', 'topCurve', 'taper', 'spread', 'twist', 'waveCount', 'seed'],
   lightningRibbon: ['curve', 'topCurve', 'taper', 'spread', 'twist', 'waveCount', 'seed'],
-  risingSpiralRibbon: ['curve', 'topCurve', 'taper', 'spread', 'twist', 'waveCount'],
-  cylinderSpiralRibbon: ['curve', 'topCurve', 'taper', 'spread', 'twist', 'waveCount'],
+  risingSpiralRibbon: ['curve', 'topCurve', 'taper', 'spread', 'bottomSpread', 'twist', 'waveCount'],
+  cylinderSpiralRibbon: ['curve', 'topCurve', 'taper', 'spread', 'bottomSpread', 'twist', 'waveCount'],
   plane: ['topCurve', 'taper'],
   flatRing: ['topCurve', 'spread', 'twist'],
   sphere: ['twist', 'yClip'],
@@ -397,6 +400,11 @@ interface ControlPanelProps {
     z: number
   }
   setRotation: (value: ControlPanelProps['rotation']) => void
+  textureTiling: {
+    x: number
+    y: number
+  }
+  setTextureTiling: (value: ControlPanelProps['textureTiling']) => void
   textureName: string | null
   onTextureFileSelect: (file: File) => void
   onTextureReset: () => void
@@ -443,6 +451,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   setScale,
   rotation,
   setRotation,
+  textureTiling,
+  setTextureTiling,
   textureName,
   onTextureFileSelect,
   onTextureReset,
@@ -465,6 +475,11 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   } | null>(null)
   const rotationDragRef = useRef<{
     key: keyof ControlPanelProps['rotation']
+    startX: number
+    startValue: number
+  } | null>(null)
+  const textureTilingDragRef = useRef<{
+    key: keyof ControlPanelProps['textureTiling']
     startX: number
     startValue: number
   } | null>(null)
@@ -500,12 +515,23 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const showsDoubleSided = DOUBLE_SIDED_MESH_TYPES.has(meshType)
   const showsCrossMesh = CROSS_MESH_TYPES.has(meshType)
   const showsMirrorZ = !showsDoubleSided && !HIDDEN_MIRROR_Z_MESH_TYPES.has(meshType)
+  const isTornadoMesh = meshType === 'risingSpiralRibbon' || meshType === 'cylinderSpiralRibbon'
+  const usesVerticalTaperLabels =
+    isTornadoMesh ||
+    meshType === 'slash' ||
+    meshType === 'ribbon' ||
+    meshType === 'lightningRibbon' ||
+    meshType === 'plane'
   const divisionsMin =
     isSphericalMesh || meshType === 'beamDome'
       ? '2'
       : meshType === 'slash' || meshType === 'openCylinder' || meshType === 'plane'
         ? '1'
         : '3'
+  const divisionsMax =
+    meshType === 'risingSpiralRibbon' || meshType === 'cylinderSpiralRibbon'
+      ? '128'
+      : '64'
 
   const handleMeshTypeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const nextMeshType = event.target.value as EffectMeshType
@@ -637,6 +663,16 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     setRotation({ ...rotation, [key]: value })
   }
 
+  const handleTextureTilingChange = (
+    key: keyof ControlPanelProps['textureTiling'],
+    value: number
+  ) => {
+    setTextureTiling({
+      ...textureTiling,
+      [key]: Math.max(0.01, value),
+    })
+  }
+
   const handleTextureInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -656,6 +692,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const roundPivotValue = (value: number) => Math.round(value * 1000) / 1000
   const roundScaleValue = (value: number) => Math.round(value * 1000) / 1000
   const roundRotationValue = (value: number) => Math.round(value * 1000) / 1000
+  const roundTextureTilingValue = (value: number) => Math.round(value * 1000) / 1000
   const parseScaleInput = (value: string) => {
     const parsedValue = parseFloat(value)
     return Number.isFinite(parsedValue) ? parsedValue : 1
@@ -663,6 +700,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const parseRotationInput = (value: string) => {
     const parsedValue = parseFloat(value)
     return Number.isFinite(parsedValue) ? parsedValue : 0
+  }
+  const parseTextureTilingInput = (value: string) => {
+    const parsedValue = parseFloat(value)
+    return Number.isFinite(parsedValue) ? parsedValue : 1
   }
 
   const handlePivotDragStart = (
@@ -788,6 +829,50 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     window.addEventListener('pointerup', handlePointerUp)
   }
 
+  const handleTextureTilingDragStart = (
+    event: React.PointerEvent<HTMLInputElement>,
+    key: keyof ControlPanelProps['textureTiling']
+  ) => {
+    if (event.button !== 0) return
+
+    textureTilingDragRef.current = {
+      key,
+      startX: event.clientX,
+      startValue: textureTiling[key],
+    }
+
+    const previousCursor = document.body.style.cursor
+    const previousUserSelect = document.body.style.userSelect
+    document.body.style.cursor = 'ew-resize'
+    document.body.style.userSelect = 'none'
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const drag = textureTilingDragRef.current
+      if (!drag) return
+
+      const deltaX = moveEvent.clientX - drag.startX
+      if (Math.abs(deltaX) < 2) return
+
+      moveEvent.preventDefault()
+      const sensitivity = moveEvent.altKey ? 0.001 : moveEvent.shiftKey ? 0.005 : 0.01
+      handleTextureTilingChange(
+        drag.key,
+        roundTextureTilingValue(drag.startValue + deltaX * sensitivity)
+      )
+    }
+
+    const handlePointerUp = () => {
+      textureTilingDragRef.current = null
+      document.body.style.cursor = previousCursor
+      document.body.style.userSelect = previousUserSelect
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+  }
+
   const handleExport = async (format: 'fbx' | 'glb' | 'gltf' | 'obj') => {
     if (!mesh) {
       alert(t.exportWaiting)
@@ -889,7 +974,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           id="divisions"
           type="range"
           min={divisionsMin}
-          max="64"
+          max={divisionsMax}
           value={params.divisions}
           onChange={(e) => handleChange('divisions', parseInt(e.target.value))}
         />
@@ -988,40 +1073,58 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       )}
 
       {isEffectControlVisible('taper') && (
-        <div className="control-group">
-          <label htmlFor="taper">{t.taperStart}</label>
-          <input
-            id="taper"
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={params.taper}
-            onChange={(e) => handleChange('taper', parseFloat(e.target.value))}
-          />
-          <span className="value">{params.taper.toFixed(2)}</span>
-        </div>
-      )}
+        <>
+          {usesVerticalTaperLabels && (
+            <div className="control-group">
+              <label htmlFor="endTaper">{t.taperTop}</label>
+              <input
+                id="endTaper"
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={params.endTaper ?? params.taper}
+                onChange={(e) => handleChange('endTaper', parseFloat(e.target.value))}
+              />
+              <span className="value">{(params.endTaper ?? params.taper).toFixed(2)}</span>
+            </div>
+          )}
 
-      {isEffectControlVisible('taper') && (
-        <div className="control-group">
-          <label htmlFor="endTaper">{t.taperEnd}</label>
-          <input
-            id="endTaper"
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={params.endTaper ?? params.taper}
-            onChange={(e) => handleChange('endTaper', parseFloat(e.target.value))}
-          />
-          <span className="value">{(params.endTaper ?? params.taper).toFixed(2)}</span>
-        </div>
+          <div className="control-group">
+            <label htmlFor="taper">{usesVerticalTaperLabels ? t.taperBottom : t.taperStart}</label>
+            <input
+              id="taper"
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={params.taper}
+              onChange={(e) => handleChange('taper', parseFloat(e.target.value))}
+            />
+            <span className="value">{params.taper.toFixed(2)}</span>
+          </div>
+
+          {!usesVerticalTaperLabels && (
+            <div className="control-group">
+              <label htmlFor="endTaper">{t.taperEnd}</label>
+              <input
+                id="endTaper"
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={params.endTaper ?? params.taper}
+                onChange={(e) => handleChange('endTaper', parseFloat(e.target.value))}
+              />
+              <span className="value">{(params.endTaper ?? params.taper).toFixed(2)}</span>
+            </div>
+          )}
+        </>
       )}
 
       {isEffectControlVisible('spread') && (
         <div className="control-group">
-          <label htmlFor="spread">{t.spread}</label>
+          <label htmlFor="spread">{isTornadoMesh ? t.spreadEnd : t.spread}</label>
           <input
             id="spread"
             type="range"
@@ -1032,6 +1135,22 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             onChange={(e) => handleChange('spread', parseFloat(e.target.value))}
           />
           <span className="value">{params.spread.toFixed(2)}</span>
+        </div>
+      )}
+
+      {isEffectControlVisible('bottomSpread') && (
+        <div className="control-group">
+          <label htmlFor="bottomSpread">{isTornadoMesh ? t.spreadStart : t.bottomSpread}</label>
+          <input
+            id="bottomSpread"
+            type="range"
+            min="0"
+            max="3"
+            step="0.05"
+            value={params.bottomSpread ?? 0}
+            onChange={(e) => handleChange('bottomSpread', parseFloat(e.target.value))}
+          />
+          <span className="value">{(params.bottomSpread ?? 0).toFixed(2)}</span>
         </div>
       )}
 
@@ -1246,6 +1365,40 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
         <div className="texture-name" title={textureName ?? t.checker}>
           {textureName ?? t.checker}
+        </div>
+      </div>
+
+      <div className="control-group">
+        <label>{t.textureTiling}</label>
+        <div className="vector-inputs">
+          <label>
+            X
+            <input
+              type="number"
+              min="0.01"
+              max="32"
+              step="0.1"
+              className="draggable-number"
+              title={t.dragToAdjust}
+              value={textureTiling.x}
+              onPointerDown={(e) => handleTextureTilingDragStart(e, 'x')}
+              onChange={(e) => handleTextureTilingChange('x', parseTextureTilingInput(e.target.value))}
+            />
+          </label>
+          <label>
+            Y
+            <input
+              type="number"
+              min="0.01"
+              max="32"
+              step="0.1"
+              className="draggable-number"
+              title={t.dragToAdjust}
+              value={textureTiling.y}
+              onPointerDown={(e) => handleTextureTilingDragStart(e, 'y')}
+              onChange={(e) => handleTextureTilingChange('y', parseTextureTilingInput(e.target.value))}
+            />
+          </label>
         </div>
       </div>
 

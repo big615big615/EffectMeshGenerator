@@ -31,6 +31,7 @@ export interface EffectMeshParams {
   taper: number
   endTaper?: number
   spread: number
+  bottomSpread?: number
   twist: number
   waveCount: number
   seed: number
@@ -576,15 +577,17 @@ function generateRisingSpiralRibbonMesh(
   const curveAmount = getCurveAmount(params)
   const liftAmount = getTopCurveAmount(params) * liftDirection
   const spreadAmount = Math.max(0, params.spread)
+  const bottomSpreadAmount = Math.max(0, params.bottomSpread ?? 0)
   const turns = Math.max(0.25, params.waveCount) * THREE.MathUtils.lerp(0.5, 1.5, curveAmount)
   const baseRadius = Math.max(params.thickness * 0.2, params.length * 0.025, 0.001)
+  const bottomRadius = baseRadius * (1 + bottomSpreadAmount * 10)
   const topRadius = baseRadius + params.length * THREE.MathUtils.lerp(0.08, 0.28, curveAmount) * (1 + spreadAmount)
   const centerPoints: THREE.Vector3[] = []
 
   for (let i = 0; i <= lengthSegments; i++) {
     const u = i / lengthSegments
     const angle = u * Math.PI * 2 * turns
-    const radius = THREE.MathUtils.lerp(baseRadius, topRadius, u)
+    const radius = THREE.MathUtils.lerp(bottomRadius, topRadius, u)
     const y = THREE.MathUtils.lerp(-halfHeight, halfHeight, u)
     centerPoints.push(new THREE.Vector3(Math.cos(angle) * radius, y, Math.sin(angle) * radius))
   }
@@ -633,6 +636,7 @@ function generateCylinderSpiralRibbonMesh(
   const curveAmount = getCurveAmount(params)
   const liftAmount = getTopCurveAmount(params) * liftDirection
   const spreadAmount = Math.max(0, params.spread)
+  const bottomSpreadAmount = Math.max(0, params.bottomSpread ?? 0)
   const turns = Math.max(0.25, params.waveCount)
   const baseRadius = Math.max(
     params.length * THREE.MathUtils.lerp(0.08, 0.24, curveAmount),
@@ -644,7 +648,7 @@ function generateCylinderSpiralRibbonMesh(
   for (let i = 0; i <= lengthSegments; i++) {
     const u = i / lengthSegments
     const angle = u * Math.PI * 2 * turns
-    const radius = baseRadius * (1 + spreadAmount * u)
+    const radius = baseRadius * (1 + bottomSpreadAmount * (1 - u) + spreadAmount * u)
     const y = THREE.MathUtils.lerp(-halfHeight, halfHeight, u)
     centerPoints.push(new THREE.Vector3(Math.cos(angle) * radius, y, Math.sin(angle) * radius))
   }

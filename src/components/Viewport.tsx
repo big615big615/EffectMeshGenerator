@@ -111,6 +111,10 @@ interface ViewportProps {
     y: number
     z: number
   }
+  textureTiling: {
+    x: number
+    y: number
+  }
   textureSource: TextureSource | null
   language: Language
   onMeshReady?: (mesh: THREE.Mesh) => void
@@ -137,6 +141,7 @@ const Viewport: React.FC<ViewportProps> = ({
   pivot,
   scale,
   rotation,
+  textureTiling,
   textureSource,
   language,
   onMeshReady,
@@ -621,6 +626,18 @@ const Viewport: React.FC<ViewportProps> = ({
     }
   }, [textureSource?.url])
 
+  useEffect(() => {
+    if (checkerTextureRef.current) {
+      applyTextureTiling(checkerTextureRef.current)
+    }
+
+    if (uploadedTextureRef.current) {
+      applyTextureTiling(uploadedTextureRef.current)
+    }
+
+    applyPreviewTexture(getPreviewTexture())
+  }, [textureTiling])
+
   // Sync wireframe state and preview texture display with the mesh material
   useEffect(() => {
     if (!meshRef.current) return
@@ -668,6 +685,15 @@ const Viewport: React.FC<ViewportProps> = ({
     texture.minFilter = THREE.LinearFilter
     texture.wrapS = THREE.RepeatWrapping
     texture.wrapT = THREE.RepeatWrapping
+    applyTextureTiling(texture)
+    texture.needsUpdate = true
+  }
+
+  const applyTextureTiling = (texture: THREE.Texture) => {
+    texture.repeat.set(
+      Math.max(0.01, textureTiling.x),
+      Math.max(0.01, textureTiling.y)
+    )
     texture.needsUpdate = true
   }
 
@@ -778,6 +804,7 @@ const Viewport: React.FC<ViewportProps> = ({
     texture.minFilter = THREE.NearestFilter
     texture.wrapS = THREE.RepeatWrapping
     texture.wrapT = THREE.RepeatWrapping
+    applyTextureTiling(texture)
     texture.needsUpdate = true
     return texture
   }

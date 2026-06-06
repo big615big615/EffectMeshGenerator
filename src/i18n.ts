@@ -21,7 +21,12 @@ export interface UiText {
   taper: string
   taperStart: string
   taperEnd: string
+  taperBottom: string
+  taperTop: string
   spread: string
+  bottomSpread: string
+  spreadStart: string
+  spreadEnd: string
   twist: string
   waveCount: string
   seed: string
@@ -41,6 +46,7 @@ export interface UiText {
   thumbnailRotationLogged: string
   reset: string
   texture: string
+  textureTiling: string
   chooseImage: string
   checker: string
   uvRotate: string
@@ -146,7 +152,12 @@ export const uiText: Record<Language, UiText> = {
     taper: 'テーパー',
     taperStart: 'テーパー 始点',
     taperEnd: 'テーパー 終点',
+    taperBottom: 'テーパー 下部',
+    taperTop: 'テーパー 上部',
     spread: '広がり',
+    bottomSpread: '下部広がり',
+    spreadStart: '広がり 下部',
+    spreadEnd: '広がり 上部',
     twist: 'ねじれ',
     waveCount: '波数',
     seed: 'シード',
@@ -166,6 +177,7 @@ export const uiText: Record<Language, UiText> = {
     thumbnailRotationLogged: 'コンソールへ出力しました',
     reset: 'リセット',
     texture: 'テクスチャ',
+    textureTiling: 'タイリング',
     chooseImage: '画像を選択',
     checker: 'チェッカー',
     uvRotate: 'UV回転',
@@ -252,7 +264,12 @@ export const uiText: Record<Language, UiText> = {
     taper: 'Taper',
     taperStart: 'Taper Start',
     taperEnd: 'Taper End',
+    taperBottom: 'Taper Bottom',
+    taperTop: 'Taper Top',
     spread: 'Spread',
+    bottomSpread: 'Bottom Spread',
+    spreadStart: 'Spread Bottom',
+    spreadEnd: 'Spread Top',
     twist: 'Twist',
     waveCount: 'Wave Count',
     seed: 'Seed',
@@ -272,6 +289,7 @@ export const uiText: Record<Language, UiText> = {
     thumbnailRotationLogged: 'Logged to console',
     reset: 'Reset',
     texture: 'Texture',
+    textureTiling: 'Tiling',
     chooseImage: 'Choose Image',
     checker: 'Checker',
     uvRotate: 'UV Rotate',
