@@ -16,6 +16,7 @@ const SLASH_DEFAULT_PARAMS: EffectMeshParams = {
   spread: 0,
   twist: 0,
   waveCount: 1,
+  waveHeight: 1,
   seed: 0,
   yClip: 0,
   cylinderScale: 1,
@@ -289,6 +290,7 @@ type EffectControlKey =
   | 'bottomSpread'
   | 'twist'
   | 'waveCount'
+  | 'waveHeight'
   | 'seed'
   | 'yClip'
 
@@ -296,7 +298,7 @@ const VISIBLE_EFFECT_CONTROLS: Record<EffectMeshType, readonly EffectControlKey[
   slash: ['curve', 'topCurve', 'taper', 'spread', 'twist'],
   arc: ['curve', 'topCurve', 'taper', 'spread'],
   arcRibbon: ['curve', 'topCurve', 'taper', 'spread', 'twist'],
-  openCylinder: ['curve', 'topCurve', 'spread', 'twist'],
+  openCylinder: ['curve', 'topCurve', 'spread', 'bottomSpread', 'twist', 'waveCount', 'waveHeight', 'seed'],
   ribbon: ['curve', 'topCurve', 'taper', 'spread', 'twist', 'waveCount', 'seed'],
   lightningRibbon: ['curve', 'topCurve', 'taper', 'spread', 'twist', 'waveCount', 'seed'],
   risingSpiralRibbon: ['curve', 'topCurve', 'taper', 'spread', 'bottomSpread', 'twist', 'waveCount'],
@@ -516,6 +518,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const showsCrossMesh = CROSS_MESH_TYPES.has(meshType)
   const showsMirrorZ = !showsDoubleSided && !HIDDEN_MIRROR_Z_MESH_TYPES.has(meshType)
   const isTornadoMesh = meshType === 'risingSpiralRibbon' || meshType === 'cylinderSpiralRibbon'
+  const usesVerticalSpreadLabels = isTornadoMesh || meshType === 'openCylinder'
   const usesVerticalTaperLabels =
     isTornadoMesh ||
     meshType === 'slash' ||
@@ -532,6 +535,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     meshType === 'risingSpiralRibbon' || meshType === 'cylinderSpiralRibbon'
       ? '128'
       : '64'
+  const curveMin = meshType === 'openCylinder' ? '-1' : '0'
+  const curveMax = meshType === 'openCylinder' ? '1' : '2'
 
   const handleMeshTypeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const nextMeshType = event.target.value as EffectMeshType
@@ -1046,8 +1051,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           <input
             id="curve"
             type="range"
-            min="0"
-            max="2"
+            min={curveMin}
+            max={curveMax}
             step="0.1"
             value={params.curve}
             onChange={(e) => handleChange('curve', parseFloat(e.target.value))}
@@ -1124,7 +1129,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
       {isEffectControlVisible('spread') && (
         <div className="control-group">
-          <label htmlFor="spread">{isTornadoMesh ? t.spreadEnd : t.spread}</label>
+          <label htmlFor="spread">{usesVerticalSpreadLabels ? t.spreadEnd : t.spread}</label>
           <input
             id="spread"
             type="range"
@@ -1140,7 +1145,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
       {isEffectControlVisible('bottomSpread') && (
         <div className="control-group">
-          <label htmlFor="bottomSpread">{isTornadoMesh ? t.spreadStart : t.bottomSpread}</label>
+          <label htmlFor="bottomSpread">{usesVerticalSpreadLabels ? t.spreadStart : t.bottomSpread}</label>
           <input
             id="bottomSpread"
             type="range"
@@ -1183,6 +1188,22 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             onChange={(e) => handleChange('waveCount', parseFloat(e.target.value))}
           />
           <span className="value">{params.waveCount.toFixed(2)}</span>
+        </div>
+      )}
+
+      {isEffectControlVisible('waveHeight') && (
+        <div className="control-group">
+          <label htmlFor="waveHeight">{t.waveHeight}</label>
+          <input
+            id="waveHeight"
+            type="range"
+            min="0"
+            max="3"
+            step="0.05"
+            value={params.waveHeight ?? 1}
+            onChange={(e) => handleChange('waveHeight', parseFloat(e.target.value))}
+          />
+          <span className="value">{(params.waveHeight ?? 1).toFixed(2)}</span>
         </div>
       )}
 

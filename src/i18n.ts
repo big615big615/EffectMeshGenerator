@@ -29,6 +29,7 @@ export interface UiText {
   spreadEnd: string
   twist: string
   waveCount: string
+  waveHeight: string
   seed: string
   cylinderDivisions: string
   cylinderScale: string
@@ -160,6 +161,7 @@ export const uiText: Record<Language, UiText> = {
     spreadEnd: '広がり 上部',
     twist: 'ねじれ',
     waveCount: '波数',
+    waveHeight: '波の高さ',
     seed: 'シード',
     cylinderDivisions: '分割数/円柱',
     cylinderScale: '円柱スケール',
@@ -272,6 +274,7 @@ export const uiText: Record<Language, UiText> = {
     spreadEnd: 'Spread Top',
     twist: 'Twist',
     waveCount: 'Wave Count',
+    waveHeight: 'Wave Height',
     seed: 'Seed',
     cylinderDivisions: 'Divisions / Cylinder',
     cylinderScale: 'Cylinder Scale',

@@ -34,6 +34,7 @@ export interface EffectMeshParams {
   bottomSpread?: number
   twist: number
   waveCount: number
+  waveHeight?: number
   seed: number
   yClip: number
   cylinderScale: number
@@ -821,16 +822,27 @@ function generateOpenCylinderMesh(
   const sizeScale = 2
   const halfHeight = (params.length * sizeScale) / 2
   const tubeRadius = Math.max(params.thickness * sizeScale * 0.5, 0.001)
-  const curveAmount = getCurveAmount(params)
+  const curveAmount = THREE.MathUtils.clamp(params.curve / 2, -1, 1)
   const liftAmount = getTopCurveAmount(params)
   const spreadAmount = Math.max(0, params.spread)
+  const bottomSpreadAmount = Math.max(0, params.bottomSpread ?? 0)
+  const waveCount = Math.max(1, params.waveCount)
+  const waveHeight = Math.max(0, params.waveHeight ?? 1)
+  const waveOffsetPhase = getSeededPhaseOffset(params.seed)
 
   return createGridGeometry(heightSegments, radialSegments, (u, v) => {
     const phi = v * Math.PI * 2 + u * params.twist * Math.PI
     const sideCurveProfile = Math.sin(Math.PI * u)
-    const topScale = THREE.MathUtils.lerp(1, 1 + spreadAmount, u)
+    const waveOffset =
+      waveCount <= 1
+        ? 0
+        : Math.sin(Math.PI * 2 * waveCount * u - Math.PI * 0.5 + waveOffsetPhase) *
+          tubeRadius *
+          0.16 *
+          waveHeight
+    const verticalScale = THREE.MathUtils.lerp(1 + bottomSpreadAmount, 1 + spreadAmount, u)
     const radiusScale = 1 + (curveAmount + liftAmount * liftDirection) * sideCurveProfile * 2
-    const currentRadius = Math.max(tubeRadius * topScale * radiusScale, 0.001)
+    const currentRadius = Math.max(tubeRadius * verticalScale * radiusScale + waveOffset, 0.001)
 
     return new THREE.Vector3(
       Math.cos(phi) * currentRadius,
