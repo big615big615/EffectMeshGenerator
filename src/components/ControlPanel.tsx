@@ -1,7 +1,11 @@
 import React, { useRef, useState } from 'react'
 import * as THREE from 'three'
 import * as meshExporter from '../exporters/meshExporter'
-import type { EffectMeshParams, EffectMeshType } from '../generators/effectMeshGenerator'
+import type {
+  EffectMeshParams,
+  EffectMeshType,
+  HoneycombUvMode,
+} from '../generators/effectMeshGenerator'
 import { uiText, type Language } from '../i18n'
 import './ControlPanel.css'
 
@@ -168,6 +172,64 @@ const PLANE_DEFAULT_PARAMS: EffectMeshParams = {
   cylinderScale: 1,
 }
 
+const HONEYCOMB_PLANE_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 6,
+  widthDivisions: 8,
+  thickness: 3,
+  length: 4,
+  curve: 0,
+  topCurve: 0,
+  taper: 0,
+  spread: 0.08,
+  twist: 0,
+  waveCount: 1,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
+  honeycombUvMode: 'square',
+  honeycombExtraOffsetRows: false,
+  honeycombXCurve: 0,
+  honeycombRandomRemoval: 0,
+}
+
+const HONEYCOMB_RADIAL_PLANE_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 4,
+  widthDivisions: 1,
+  thickness: 3,
+  length: 3,
+  curve: 0,
+  topCurve: 0,
+  taper: 0,
+  spread: 0.08,
+  twist: 0,
+  waveCount: 1,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
+  honeycombUvMode: 'square',
+  honeycombCenterRingRemoval: 0,
+  honeycombXCurve: 0,
+  honeycombRandomRemoval: 0,
+}
+
+const HONEYCOMB_SPHERE_DEFAULT_PARAMS: EffectMeshParams = {
+  divisions: 4,
+  widthDivisions: 1,
+  thickness: 1,
+  length: 3,
+  curve: 0,
+  topCurve: 0,
+  taper: 0,
+  spread: 0.08,
+  twist: 0,
+  waveCount: 1,
+  seed: 0,
+  yClip: 0,
+  cylinderScale: 1,
+  honeycombUvMode: 'square',
+  honeycombRandomRemoval: 0,
+}
+
 const FLAT_RING_DEFAULT_PARAMS: EffectMeshParams = {
   divisions: 32,
   widthDivisions: 1,
@@ -280,10 +342,15 @@ const MESH_TYPE_OPTION_VALUES: ReadonlyArray<EffectMeshType> = [
   'hemisphere',
   'zHemisphere',
   'beamDome',
+  'honeycombPlane',
+  'honeycombRadialPlane',
+  'honeycombSphere',
 ]
 
 type EffectControlKey =
   | 'curve'
+  | 'honeycombXCurve'
+  | 'honeycombRandomRemoval'
   | 'topCurve'
   | 'taper'
   | 'spread'
@@ -304,6 +371,9 @@ const VISIBLE_EFFECT_CONTROLS: Record<EffectMeshType, readonly EffectControlKey[
   risingSpiralRibbon: ['curve', 'topCurve', 'taper', 'spread', 'bottomSpread', 'twist', 'waveCount'],
   cylinderSpiralRibbon: ['curve', 'topCurve', 'taper', 'spread', 'bottomSpread', 'twist', 'waveCount'],
   plane: ['topCurve', 'taper'],
+  honeycombPlane: ['curve', 'honeycombXCurve', 'spread', 'honeycombRandomRemoval', 'seed'],
+  honeycombRadialPlane: ['curve', 'honeycombXCurve', 'spread', 'honeycombRandomRemoval', 'seed'],
+  honeycombSphere: ['spread', 'honeycombRandomRemoval', 'seed', 'yClip'],
   flatRing: ['topCurve', 'spread', 'twist'],
   sphere: ['twist', 'yClip'],
   hemisphere: ['twist'],
@@ -339,6 +409,9 @@ const HIDDEN_MIRROR_Z_MESH_TYPES: ReadonlySet<EffectMeshType> = new Set([
   'sphere',
   'hemisphere',
   'zHemisphere',
+  'honeycombPlane',
+  'honeycombRadialPlane',
+  'honeycombSphere',
   'beamDome',
 ])
 
@@ -489,6 +562,18 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const handleChange = (key: keyof ControlPanelProps['params'], value: number) => {
     setParams({ ...params, [key]: value })
   }
+  const handleHoneycombUvModeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setParams({
+      ...params,
+      honeycombUvMode: event.target.value as HoneycombUvMode,
+    })
+  }
+  const handleHoneycombExtraOffsetRowsChange = () => {
+    setParams({
+      ...params,
+      honeycombExtraOffsetRows: !(params.honeycombExtraOffsetRows ?? false),
+    })
+  }
   const handleControlPanelPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     const target = event.target
     if (!(target instanceof HTMLInputElement) || target.type !== 'range') return
@@ -514,6 +599,17 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     VISIBLE_EFFECT_CONTROLS[meshType].includes(key)
   const isSphericalMesh =
     meshType === 'sphere' || meshType === 'hemisphere' || meshType === 'zHemisphere'
+  const isPlanarHoneycombMesh =
+    meshType === 'honeycombPlane' || meshType === 'honeycombRadialPlane'
+  const isSizeLabelMesh = isSphericalMesh || isPlanarHoneycombMesh || meshType === 'honeycombSphere'
+  const hidesThickness = isSphericalMesh || isPlanarHoneycombMesh || meshType === 'honeycombSphere'
+  const showsWidthDivisions = meshType !== 'honeycombSphere' && meshType !== 'honeycombRadialPlane'
+  const isHoneycombPlane = meshType === 'honeycombPlane'
+  const isHoneycombRadialPlane = meshType === 'honeycombRadialPlane'
+  const isHoneycombMesh =
+    meshType === 'honeycombPlane' ||
+    meshType === 'honeycombRadialPlane' ||
+    meshType === 'honeycombSphere'
   const showsDoubleSided = DOUBLE_SIDED_MESH_TYPES.has(meshType)
   const showsCrossMesh = CROSS_MESH_TYPES.has(meshType)
   const showsMirrorZ = !showsDoubleSided && !HIDDEN_MIRROR_Z_MESH_TYPES.has(meshType)
@@ -526,17 +622,32 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     meshType === 'lightningRibbon' ||
     meshType === 'plane'
   const divisionsMin =
-    isSphericalMesh || meshType === 'beamDome'
+    isSphericalMesh || meshType === 'honeycombSphere' || meshType === 'beamDome'
       ? '2'
-      : meshType === 'slash' || meshType === 'openCylinder' || meshType === 'plane'
+      : meshType === 'slash' ||
+          meshType === 'openCylinder' ||
+          meshType === 'plane' ||
+          meshType === 'honeycombPlane' ||
+          meshType === 'honeycombRadialPlane'
         ? '1'
         : '3'
   const divisionsMax =
-    meshType === 'risingSpiralRibbon' || meshType === 'cylinderSpiralRibbon'
+    meshType === 'honeycombSphere'
+      ? '16'
+      : isPlanarHoneycombMesh
+      ? '32'
+      : meshType === 'risingSpiralRibbon' || meshType === 'cylinderSpiralRibbon'
       ? '128'
       : '64'
   const curveMin = meshType === 'openCylinder' ? '-1' : '0'
   const curveMax = meshType === 'openCylinder' ? '1' : '2'
+  const spreadLabel = isHoneycombMesh
+    ? t.honeycombGap
+    : usesVerticalSpreadLabels
+      ? t.spreadEnd
+      : t.spread
+  const spreadMax = isHoneycombMesh ? '0.75' : '3'
+  const spreadStep = isHoneycombMesh ? '0.01' : '0.05'
 
   const handleMeshTypeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const nextMeshType = event.target.value as EffectMeshType
@@ -614,6 +725,27 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       return
     }
 
+    if (nextMeshType === 'honeycombPlane') {
+      applyMeshParams(HONEYCOMB_PLANE_DEFAULT_PARAMS)
+      setMirrorZ(false)
+      setDoubleSided(false)
+      return
+    }
+
+    if (nextMeshType === 'honeycombRadialPlane') {
+      applyMeshParams(HONEYCOMB_RADIAL_PLANE_DEFAULT_PARAMS)
+      setMirrorZ(false)
+      setDoubleSided(false)
+      return
+    }
+
+    if (nextMeshType === 'honeycombSphere') {
+      applyMeshParams(HONEYCOMB_SPHERE_DEFAULT_PARAMS)
+      setMirrorZ(false)
+      setDoubleSided(false)
+      return
+    }
+
     if (nextMeshType === 'flatRing') {
       applyMeshParams(FLAT_RING_DEFAULT_PARAMS)
       setMirrorZ(false)
@@ -658,6 +790,24 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
   const handlePivotChange = (key: keyof ControlPanelProps['pivot'], value: number) => {
     setPivot({ ...pivot, [key]: value })
+  }
+
+  const handleMovePivotToBoundsCenter = () => {
+    if (!mesh) return
+
+    mesh.geometry.computeBoundingBox()
+    const boundingBox = mesh.geometry.boundingBox
+    if (!boundingBox) return
+
+    const center = new THREE.Vector3()
+    boundingBox.getCenter(center)
+    center.add(mesh.position)
+
+    setPivot({
+      x: roundPivotValue(center.x),
+      y: roundPivotValue(center.y),
+      z: roundPivotValue(center.z),
+    })
   }
 
   const handleScaleChange = (key: keyof ControlPanelProps['scale'], value: number) => {
@@ -1002,20 +1152,22 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
       )}
 
-      <div className="control-group">
-        <label htmlFor="widthDivisions">{t.widthDivisions}</label>
-        <input
-          id="widthDivisions"
-          type="range"
-          min="1"
-          max="16"
-          value={params.widthDivisions}
-          onChange={(e) => handleChange('widthDivisions', parseInt(e.target.value))}
-        />
-        <span className="value">{params.widthDivisions}</span>
-      </div>
+      {showsWidthDivisions && (
+        <div className="control-group">
+          <label htmlFor="widthDivisions">{t.widthDivisions}</label>
+          <input
+            id="widthDivisions"
+            type="range"
+            min="1"
+            max={isPlanarHoneycombMesh ? '32' : '16'}
+            value={params.widthDivisions}
+            onChange={(e) => handleChange('widthDivisions', parseInt(e.target.value))}
+          />
+          <span className="value">{params.widthDivisions}</span>
+        </div>
+      )}
 
-      {!isSphericalMesh && (
+      {!hidesThickness && (
         <div className="control-group">
           <label htmlFor="thickness">{t.thickness}</label>
           <input
@@ -1032,7 +1184,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       )}
 
       <div className="control-group">
-        <label htmlFor="length">{isSphericalMesh ? t.size : t.length}</label>
+        <label htmlFor="length">{isSizeLabelMesh ? t.size : t.length}</label>
         <input
           id="length"
           type="range"
@@ -1047,7 +1199,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
       {isEffectControlVisible('curve') && (
         <div className="control-group">
-          <label htmlFor="curve">{t.curve}</label>
+          <label htmlFor="curve">{isPlanarHoneycombMesh ? t.honeycombYCurve : t.curve}</label>
           <input
             id="curve"
             type="range"
@@ -1058,6 +1210,22 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             onChange={(e) => handleChange('curve', parseFloat(e.target.value))}
           />
           <span className="value">{params.curve.toFixed(1)}</span>
+        </div>
+      )}
+
+      {isEffectControlVisible('honeycombXCurve') && (
+        <div className="control-group">
+          <label htmlFor="honeycombXCurve">{t.honeycombXCurve}</label>
+          <input
+            id="honeycombXCurve"
+            type="range"
+            min="0"
+            max="2"
+            step="0.1"
+            value={params.honeycombXCurve ?? 0}
+            onChange={(e) => handleChange('honeycombXCurve', parseFloat(e.target.value))}
+          />
+          <span className="value">{(params.honeycombXCurve ?? 0).toFixed(1)}</span>
         </div>
       )}
 
@@ -1129,17 +1297,78 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
       {isEffectControlVisible('spread') && (
         <div className="control-group">
-          <label htmlFor="spread">{usesVerticalSpreadLabels ? t.spreadEnd : t.spread}</label>
+          <label htmlFor="spread">{spreadLabel}</label>
           <input
             id="spread"
             type="range"
             min="0"
-            max="3"
-            step="0.05"
+            max={spreadMax}
+            step={spreadStep}
             value={params.spread}
             onChange={(e) => handleChange('spread', parseFloat(e.target.value))}
           />
           <span className="value">{params.spread.toFixed(2)}</span>
+        </div>
+      )}
+
+      {isEffectControlVisible('honeycombRandomRemoval') && (
+        <div className="control-group">
+          <label htmlFor="honeycombRandomRemoval">{t.honeycombRandomRemoval}</label>
+          <input
+            id="honeycombRandomRemoval"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={params.honeycombRandomRemoval ?? 0}
+            onChange={(e) => handleChange('honeycombRandomRemoval', parseFloat(e.target.value))}
+          />
+          <span className="value">{((params.honeycombRandomRemoval ?? 0) * 100).toFixed(0)}%</span>
+        </div>
+      )}
+
+      {isHoneycombMesh && isEffectControlVisible('seed') && (
+        <div className="control-group">
+          <label htmlFor="seed">{t.honeycombRandomSeed}</label>
+          <input
+            id="seed"
+            type="range"
+            min="0"
+            max="999"
+            step="1"
+            value={params.seed}
+            onChange={(e) => handleChange('seed', parseInt(e.target.value))}
+          />
+          <span className="value">{params.seed}</span>
+        </div>
+      )}
+
+      {isHoneycombRadialPlane && (
+        <div className="control-group">
+          <label htmlFor="honeycombCenterRingRemoval">{t.honeycombCenterRingRemoval}</label>
+          <input
+            id="honeycombCenterRingRemoval"
+            type="range"
+            min="0"
+            max="32"
+            step="1"
+            value={params.honeycombCenterRingRemoval ?? 0}
+            onChange={(e) => handleChange('honeycombCenterRingRemoval', parseInt(e.target.value))}
+          />
+          <span className="value">{params.honeycombCenterRingRemoval ?? 0}</span>
+        </div>
+      )}
+
+      {isHoneycombPlane && (
+        <div className="control-group toggle-row">
+          <span>{t.honeycombExtraOffsetRows}</span>
+          <button
+            type="button"
+            className={`toggle-btn ${params.honeycombExtraOffsetRows ? 'active' : ''}`}
+            onClick={handleHoneycombExtraOffsetRowsChange}
+          >
+            {params.honeycombExtraOffsetRows ? t.on : t.off}
+          </button>
         </div>
       )}
 
@@ -1207,7 +1436,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
       )}
 
-      {isEffectControlVisible('seed') && (
+      {isEffectControlVisible('seed') && !isHoneycombMesh && (
         <div className="control-group">
           <label htmlFor="seed">{t.seed}</label>
           <input
@@ -1328,6 +1557,21 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
       </div>
 
+      {isHoneycombMesh && (
+        <div className="control-group">
+          <label htmlFor="honeycombUvMode">{t.honeycombUvMode}</label>
+          <select
+            id="honeycombUvMode"
+            className="mesh-type-select"
+            value={params.honeycombUvMode ?? 'square'}
+            onChange={handleHoneycombUvModeChange}
+          >
+            <option value="square">{t.honeycombUvSquare}</option>
+            <option value="polygon">{t.honeycombUvPolygon}</option>
+          </select>
+        </div>
+      )}
+
       <div className="control-group toggle-row">
         <span>{t.uvScroll}</span>
         <div className="inline-actions">
@@ -1447,7 +1691,17 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       </div>
 
       <div className="control-group">
-        <label>{t.pivotPosition}</label>
+        <div className="texture-display-row">
+          <label>{t.pivotPosition}</label>
+          <button
+            type="button"
+            className="toggle-btn"
+            onClick={handleMovePivotToBoundsCenter}
+            disabled={!mesh}
+          >
+            {t.pivotToBoundsCenter}
+          </button>
+        </div>
         <div className="vector-inputs">
           <label>
             X

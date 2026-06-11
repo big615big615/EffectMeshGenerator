@@ -1,4 +1,9 @@
 import * as THREE from 'three'
+import {
+  generateHoneycombPlaneMesh,
+  generateHoneycombRadialPlaneMesh,
+  generateHoneycombSphereMesh,
+} from './honeycombMeshGenerator'
 import { generateSlashMesh } from './slashMeshGenerator'
 
 const ARC_VERTICAL_OFFSET = 1.5
@@ -14,12 +19,17 @@ export type EffectMeshType =
   | 'cylinderSpiralRibbon'
   | 'burst'
   | 'plane'
+  | 'honeycombPlane'
+  | 'honeycombRadialPlane'
+  | 'honeycombSphere'
   | 'flatRing'
   | 'sphere'
   | 'hemisphere'
   | 'zHemisphere'
   | 'openCylinder'
   | 'beamDome'
+
+export type HoneycombUvMode = 'square' | 'polygon'
 
 export interface EffectMeshParams {
   divisions: number
@@ -39,6 +49,11 @@ export interface EffectMeshParams {
   yClip: number
   cylinderScale: number
   cylinderDivisions?: number
+  honeycombUvMode?: HoneycombUvMode
+  honeycombExtraOffsetRows?: boolean
+  honeycombCenterRingRemoval?: number
+  honeycombXCurve?: number
+  honeycombRandomRemoval?: number
 }
 
 export const EFFECT_MESH_TYPE_OPTIONS: ReadonlyArray<{
@@ -59,6 +74,9 @@ export const EFFECT_MESH_TYPE_OPTIONS: ReadonlyArray<{
   { value: 'zHemisphere', label: 'Z Hemisphere' },
   { value: 'openCylinder', label: 'Cylinder / No Caps' },
   { value: 'beamDome', label: 'Beam / Dome Cap' },
+  { value: 'honeycombPlane', label: 'Honeycomb / Plane' },
+  { value: 'honeycombRadialPlane', label: 'Honeycomb / Radial Plane' },
+  { value: 'honeycombSphere', label: 'Honeycomb / Sphere' },
 ]
 
 export function generateEffectMesh(
@@ -84,6 +102,12 @@ export function generateEffectMesh(
       return generateBurstMesh(params)
     case 'plane':
       return generatePlaneMesh(params)
+    case 'honeycombPlane':
+      return generateHoneycombPlaneMesh(params)
+    case 'honeycombRadialPlane':
+      return generateHoneycombRadialPlaneMesh(params)
+    case 'honeycombSphere':
+      return generateHoneycombSphereMesh(params)
     case 'flatRing':
       return generateFlatRingMesh(params)
     case 'sphere':

@@ -24,6 +24,16 @@ export interface UiText {
   taperBottom: string
   taperTop: string
   spread: string
+  honeycombGap: string
+  honeycombYCurve: string
+  honeycombXCurve: string
+  honeycombRandomRemoval: string
+  honeycombRandomSeed: string
+  honeycombUvMode: string
+  honeycombUvSquare: string
+  honeycombUvPolygon: string
+  honeycombExtraOffsetRows: string
+  honeycombCenterRingRemoval: string
   bottomSpread: string
   spreadStart: string
   spreadEnd: string
@@ -60,6 +70,7 @@ export interface UiText {
   off: string
   pivot: string
   pivotPosition: string
+  pivotToBoundsCenter: string
   scale: string
   rotation: string
   dragToAdjust: string
@@ -108,6 +119,9 @@ const meshTypesEn: MeshTypeLabels = {
   cylinderSpiralRibbon: 'Tornado / Cylinder',
   burst: 'Burst',
   plane: 'Plane',
+  honeycombPlane: 'Honeycomb Plane',
+  honeycombRadialPlane: 'Honeycomb Radial Plane',
+  honeycombSphere: 'Honeycomb Sphere',
   flatRing: 'Ring',
   sphere: 'Sphere',
   hemisphere: 'Hemisphere Y',
@@ -127,6 +141,9 @@ const meshTypesJa: MeshTypeLabels = {
   cylinderSpiralRibbon: '円柱スパイラルリボン / 竜巻',
   burst: 'バースト',
   plane: '平面 / 四角形',
+  honeycombPlane: 'ハニカム / 平面',
+  honeycombRadialPlane: 'ハニカム / 放射平面',
+  honeycombSphere: 'ハニカム / 球面',
   flatRing: 'フラットリング',
   sphere: '球',
   hemisphere: '半球',
@@ -156,6 +173,16 @@ export const uiText: Record<Language, UiText> = {
     taperBottom: 'テーパー 下部',
     taperTop: 'テーパー 上部',
     spread: '広がり',
+    honeycombGap: '隙間',
+    honeycombYCurve: 'Y軸カーブ',
+    honeycombXCurve: 'X軸カーブ',
+    honeycombRandomRemoval: 'ランダム削除',
+    honeycombRandomSeed: 'ランダムシード',
+    honeycombUvMode: 'UV形状',
+    honeycombUvSquare: '四角',
+    honeycombUvPolygon: '元の形状',
+    honeycombExtraOffsetRows: '偶数列+1',
+    honeycombCenterRingRemoval: '中心リング削除',
     bottomSpread: '下部広がり',
     spreadStart: '広がり 下部',
     spreadEnd: '広がり 上部',
@@ -192,6 +219,7 @@ export const uiText: Record<Language, UiText> = {
     off: 'オフ',
     pivot: 'ピボット',
     pivotPosition: 'ピボット位置',
+    pivotToBoundsCenter: 'BBox中心へ',
     scale: 'スケール',
     rotation: '回転',
     dragToAdjust: '左右にドラッグして調整',
@@ -242,6 +270,9 @@ export const uiText: Record<Language, UiText> = {
       risingSpiralRibbon: '竜巻/リボン',
       cylinderSpiralRibbon: '竜巻/円柱',
       plane: '平面',
+      honeycombPlane: 'ハニカム/平面',
+      honeycombRadialPlane: 'ハニカム/放射',
+      honeycombSphere: 'ハニカム/球面',
       flatRing: 'リング',
       hemisphere: '半球Y',
       zHemisphere: '半球Z',
@@ -269,6 +300,16 @@ export const uiText: Record<Language, UiText> = {
     taperBottom: 'Taper Bottom',
     taperTop: 'Taper Top',
     spread: 'Spread',
+    honeycombGap: 'Gap',
+    honeycombYCurve: 'Y Axis Curve',
+    honeycombXCurve: 'X Axis Curve',
+    honeycombRandomRemoval: 'Random Removal',
+    honeycombRandomSeed: 'Random Seed',
+    honeycombUvMode: 'UV Shape',
+    honeycombUvSquare: 'Square',
+    honeycombUvPolygon: 'Original',
+    honeycombExtraOffsetRows: 'Even Columns +1',
+    honeycombCenterRingRemoval: 'Remove Center Rings',
     bottomSpread: 'Bottom Spread',
     spreadStart: 'Spread Bottom',
     spreadEnd: 'Spread Top',
@@ -305,6 +346,7 @@ export const uiText: Record<Language, UiText> = {
     off: 'OFF',
     pivot: 'Pivot',
     pivotPosition: 'Pivot Position',
+    pivotToBoundsCenter: 'To BBox Center',
     scale: 'Scale',
     rotation: 'Rotation',
     dragToAdjust: 'Drag horizontally to adjust',

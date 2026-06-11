@@ -41,6 +41,9 @@ https://github.com/big615big615/EffectMeshGenerator
 - Hemisphere Y / Z
 - Shockwave / Cylinder
 - Beam
+- Honeycomb / Plane
+- Honeycomb / Radial Plane
+- Honeycomb / Sphere
 
 ## Export Status
 
