@@ -320,11 +320,17 @@ const BEAM_DOME_DEFAULT_PARAMS: EffectMeshParams = {
   taper: 0,
   spread: 0,
   twist: 0,
+  waveEnabled: false,
   waveCount: 1,
+  waveCountX: 1,
+  waveHeight: 0,
+  waveHeightX: 0,
   seed: 0,
+  seedX: 0,
   yClip: 0,
   cylinderScale: 1,
   cylinderDivisions: 2,
+  beamEndCap: false,
 }
 
 const MESH_TYPE_OPTION_VALUES: ReadonlyArray<EffectMeshType> = [
@@ -357,8 +363,11 @@ type EffectControlKey =
   | 'bottomSpread'
   | 'twist'
   | 'waveCount'
+  | 'waveCountX'
   | 'waveHeight'
+  | 'waveHeightX'
   | 'seed'
+  | 'seedX'
   | 'yClip'
 
 const VISIBLE_EFFECT_CONTROLS: Record<EffectMeshType, readonly EffectControlKey[]> = {
@@ -378,10 +387,29 @@ const VISIBLE_EFFECT_CONTROLS: Record<EffectMeshType, readonly EffectControlKey[
   sphere: ['twist', 'yClip'],
   hemisphere: ['twist'],
   zHemisphere: ['yClip'],
-  beamDome: ['topCurve', 'spread', 'twist'],
+  beamDome: [
+    'topCurve',
+    'spread',
+    'twist',
+    'waveCountX',
+    'waveHeightX',
+    'seedX',
+    'waveCount',
+    'waveHeight',
+    'seed',
+  ],
   spiral: ['curve', 'topCurve', 'taper'],
   burst: ['curve', 'topCurve', 'taper'],
 }
+
+const BEAM_WAVE_DETAIL_CONTROLS: ReadonlySet<EffectControlKey> = new Set([
+  'waveCount',
+  'waveCountX',
+  'waveHeight',
+  'waveHeightX',
+  'seed',
+  'seedX',
+])
 
 const DOUBLE_SIDED_MESH_TYPES: ReadonlySet<EffectMeshType> = new Set([
   'slash',
@@ -574,6 +602,18 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       honeycombExtraOffsetRows: !(params.honeycombExtraOffsetRows ?? false),
     })
   }
+  const handleWaveEnabledChange = () => {
+    setParams({
+      ...params,
+      waveEnabled: !(params.waveEnabled ?? false),
+    })
+  }
+  const handleBeamEndCapChange = () => {
+    setParams({
+      ...params,
+      beamEndCap: !(params.beamEndCap ?? false),
+    })
+  }
   const handleControlPanelPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     const target = event.target
     if (!(target instanceof HTMLInputElement) || target.type !== 'range') return
@@ -595,8 +635,13 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const applyMeshParams = (nextParams: EffectMeshParams) => {
     setParams({ ...nextParams, endTaper: nextParams.endTaper ?? nextParams.taper })
   }
-  const isEffectControlVisible = (key: EffectControlKey) =>
-    VISIBLE_EFFECT_CONTROLS[meshType].includes(key)
+  const isEffectControlVisible = (key: EffectControlKey) => {
+    const visible = VISIBLE_EFFECT_CONTROLS[meshType].includes(key)
+    if (meshType === 'beamDome' && BEAM_WAVE_DETAIL_CONTROLS.has(key)) {
+      return visible && (params.waveEnabled ?? false)
+    }
+    return visible
+  }
   const isSphericalMesh =
     meshType === 'sphere' || meshType === 'hemisphere' || meshType === 'zHemisphere'
   const isPlanarHoneycombMesh =
@@ -1197,6 +1242,22 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         <span className="value">{params.length.toFixed(1)}</span>
       </div>
 
+      {meshType === 'beamDome' && (
+        <div className="control-group">
+          <label htmlFor="cylinderScale">{t.cylinderScale}</label>
+          <input
+            id="cylinderScale"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={params.cylinderScale}
+            onChange={(e) => handleChange('cylinderScale', parseFloat(e.target.value))}
+          />
+          <span className="value">{params.cylinderScale.toFixed(2)}</span>
+        </div>
+      )}
+
       {isEffectControlVisible('curve') && (
         <div className="control-group">
           <label htmlFor="curve">{isPlanarHoneycombMesh ? t.honeycombYCurve : t.curve}</label>
@@ -1404,9 +1465,38 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
       )}
 
+      {meshType === 'beamDome' && (
+        <div className="control-group toggle-row inline-toggle-row">
+          <label>{t.wave}</label>
+          <button
+            type="button"
+            className={`toggle-btn ${params.waveEnabled ? 'active' : ''}`}
+            onClick={handleWaveEnabledChange}
+          >
+            {params.waveEnabled ? t.on : t.off}
+          </button>
+        </div>
+      )}
+
+      {isEffectControlVisible('waveCountX') && (
+        <div className="control-group">
+          <label htmlFor="waveCountX">{t.waveCountX}</label>
+          <input
+            id="waveCountX"
+            type="range"
+            min="1"
+            max="8"
+            step="0.25"
+            value={params.waveCountX ?? params.waveCount}
+            onChange={(e) => handleChange('waveCountX', parseFloat(e.target.value))}
+          />
+          <span className="value">{(params.waveCountX ?? params.waveCount).toFixed(2)}</span>
+        </div>
+      )}
+
       {isEffectControlVisible('waveCount') && (
         <div className="control-group">
-          <label htmlFor="waveCount">{t.waveCount}</label>
+          <label htmlFor="waveCount">{meshType === 'beamDome' ? t.waveCountY : t.waveCount}</label>
           <input
             id="waveCount"
             type="range"
@@ -1420,25 +1510,59 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
       )}
 
+      {isEffectControlVisible('waveHeightX') && (
+        <div className="control-group">
+          <label htmlFor="waveHeightX">{t.waveHeightX}</label>
+          <input
+            id="waveHeightX"
+            type="range"
+            min="0"
+            max="3"
+            step="0.05"
+            value={params.waveHeightX ?? 0}
+            onChange={(e) => handleChange('waveHeightX', parseFloat(e.target.value))}
+          />
+          <span className="value">{(params.waveHeightX ?? 0).toFixed(2)}</span>
+        </div>
+      )}
+
       {isEffectControlVisible('waveHeight') && (
         <div className="control-group">
-          <label htmlFor="waveHeight">{t.waveHeight}</label>
+          <label htmlFor="waveHeight">{meshType === 'beamDome' ? t.waveHeightY : t.waveHeight}</label>
           <input
             id="waveHeight"
             type="range"
             min="0"
             max="3"
             step="0.05"
-            value={params.waveHeight ?? 1}
+            value={params.waveHeight ?? (meshType === 'beamDome' ? 0 : 1)}
             onChange={(e) => handleChange('waveHeight', parseFloat(e.target.value))}
           />
-          <span className="value">{(params.waveHeight ?? 1).toFixed(2)}</span>
+          <span className="value">
+            {(params.waveHeight ?? (meshType === 'beamDome' ? 0 : 1)).toFixed(2)}
+          </span>
+        </div>
+      )}
+
+      {isEffectControlVisible('seedX') && (
+        <div className="control-group">
+          <label htmlFor="seedX">{t.seedX}</label>
+          <input
+            id="seedX"
+            type="range"
+            min="0"
+            max="999"
+            step="1"
+            value={params.seedX ?? params.seed}
+            onChange={(e) => handleChange('seedX', parseInt(e.target.value))}
+          />
+          <span className="value">{params.seedX ?? params.seed}</span>
         </div>
       )}
 
       {isEffectControlVisible('seed') && !isHoneycombMesh && (
         <div className="control-group">
-          <label htmlFor="seed">{t.seed}</label>
+          <label htmlFor="seed">{meshType === 'beamDome' ? t.seedY : t.seed}</label>
           <input
             id="seed"
             type="range"
@@ -1450,24 +1574,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           />
           <span className="value">{params.seed}</span>
         </div>
-      )}
-
-      {meshType === 'beamDome' && (
-        <>
-          <div className="control-group">
-            <label htmlFor="cylinderScale">{t.cylinderScale}</label>
-            <input
-              id="cylinderScale"
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={params.cylinderScale}
-              onChange={(e) => handleChange('cylinderScale', parseFloat(e.target.value))}
-            />
-            <span className="value">{params.cylinderScale.toFixed(2)}</span>
-          </div>
-        </>
       )}
 
       {isEffectControlVisible('yClip') && (
@@ -1483,6 +1589,19 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             onChange={(e) => handleChange('yClip', parseFloat(e.target.value))}
           />
           <span className="value">{params.yClip.toFixed(2)}</span>
+        </div>
+      )}
+
+      {meshType === 'beamDome' && (
+        <div className="control-group toggle-row">
+          <span>{t.beamEndCap}</span>
+          <button
+            type="button"
+            className={`toggle-btn ${params.beamEndCap ? 'active' : ''}`}
+            onClick={handleBeamEndCapChange}
+          >
+            {params.beamEndCap ? t.on : t.off}
+          </button>
         </div>
       )}
 

@@ -43,12 +43,17 @@ export interface EffectMeshParams {
   spread: number
   bottomSpread?: number
   twist: number
+  waveEnabled?: boolean
   waveCount: number
+  waveCountX?: number
   waveHeight?: number
+  waveHeightX?: number
   seed: number
+  seedX?: number
   yClip: number
   cylinderScale: number
   cylinderDivisions?: number
+  beamEndCap?: boolean
   honeycombUvMode?: HoneycombUvMode
   honeycombExtraOffsetRows?: boolean
   honeycombCenterRingRemoval?: number
@@ -908,37 +913,73 @@ function generateBeamDomeMesh(params: EffectMeshParams): THREE.BufferGeometry {
   const radius = Math.max(params.thickness * 0.5, 0.001)
   const liftAmount = getTopCurveAmount(params)
   const spreadAmount = Math.max(0, params.spread)
+  const waveEnabled = params.waveEnabled ?? false
+  const waveCountY = Math.max(1, params.waveCount)
+  const waveCountX = Math.max(1, params.waveCountX ?? params.waveCount)
+  const waveHeight = waveEnabled ? Math.max(0, params.waveHeight ?? 0) : 0
+  const waveHeightX = waveEnabled ? Math.max(0, params.waveHeightX ?? 0) : 0
+  const waveOffsetPhaseY = getSeededPhaseOffset(params.seed)
+  const waveOffsetPhaseX = getSeededPhaseOffset(params.seedX ?? params.seed)
   const baseCylinderHeight = Math.max(params.length - radius, radius * 0.1)
   const cylinderScale = THREE.MathUtils.clamp(params.cylinderScale, 0, 1)
   const cylinderHeight = baseCylinderHeight * cylinderScale
   const capBaseY = (baseCylinderHeight - radius) / 2
   const bottomY = capBaseY - cylinderHeight
   const capTipY = capBaseY + radius
-  const cylinderRatio = baseCylinderHeight / (baseCylinderHeight + radius)
+  const hasRearCap = params.beamEndCap ?? false
+  const totalUvLength = baseCylinderHeight + radius * (hasRearCap ? 2 : 1)
+  const rearCapRatio = hasRearCap ? radius / totalUvLength : 0
+  const frontCapStartRatio = (baseCylinderHeight + (hasRearCap ? radius : 0)) / totalUvLength
   const uRows: number[] = []
 
-  for (let i = 0; i <= cylinderSegments; i++) {
-    uRows.push((cylinderRatio * i) / cylinderSegments)
+  if (hasRearCap) {
+    for (let i = 0; i <= capSegments; i++) {
+      uRows.push((rearCapRatio * i) / capSegments)
+    }
+
+    for (let i = 1; i <= cylinderSegments; i++) {
+      uRows.push(rearCapRatio + ((frontCapStartRatio - rearCapRatio) * i) / cylinderSegments)
+    }
+  } else {
+    for (let i = 0; i <= cylinderSegments; i++) {
+      uRows.push((frontCapStartRatio * i) / cylinderSegments)
+    }
   }
 
   for (let i = 1; i <= capSegments; i++) {
-    uRows.push(cylinderRatio + ((1 - cylinderRatio) * i) / capSegments)
+    uRows.push(frontCapStartRatio + ((1 - frontCapStartRatio) * i) / capSegments)
   }
 
   const geometry = createGridGeometryFromURows(uRows, radialSegments, (u, v) => {
     const phi = v * Math.PI * 2
-    const cylinderU = Math.min(u / cylinderRatio, 1)
     const spreadProfile = Math.pow(1 - u, 2)
     const liftProfile = Math.sin(Math.PI * u)
+    const waveProfile = Math.sin(Math.PI * u)
+    const waveScale = Math.max(radius, params.length * 0.08) * waveProfile
+    const centerWaveOffsetX =
+      Math.sin(Math.PI * 2 * waveCountX * u + waveOffsetPhaseX) * waveScale * waveHeightX
+    const centerWaveOffsetY =
+      Math.sin(Math.PI * 2 * waveCountY * u + waveOffsetPhaseY) * waveScale * waveHeight
     let currentRadius = radius * (1 + spreadAmount * spreadProfile + liftAmount * liftProfile * 2)
-    let y = THREE.MathUtils.lerp(bottomY, capBaseY, cylinderU)
+    let y: number
 
-    if (u > cylinderRatio) {
-      const capU = (u - cylinderRatio) / Math.max(1 - cylinderRatio, 0.0001)
+    if (hasRearCap && u < rearCapRatio) {
+      const capU = u / Math.max(rearCapRatio, 0.0001)
+      const capAngle = (1 - capU) * Math.PI * 0.5
+      currentRadius *= Math.cos(capAngle)
+      y = bottomY - Math.sin(capAngle) * radius
+    } else if (u > frontCapStartRatio) {
+      const capU = (u - frontCapStartRatio) / Math.max(1 - frontCapStartRatio, 0.0001)
       const capAngle = capU * Math.PI * 0.5
-      currentRadius = Math.cos(capAngle) * radius * (1 + spreadAmount * spreadProfile + liftAmount * liftProfile * 2)
+      currentRadius *= Math.cos(capAngle)
       y = capBaseY + Math.sin(capAngle) * radius
+    } else {
+      const cylinderU = hasRearCap
+        ? (u - rearCapRatio) / Math.max(frontCapStartRatio - rearCapRatio, 0.0001)
+        : u / Math.max(frontCapStartRatio, 0.0001)
+      y = THREE.MathUtils.lerp(bottomY, capBaseY, THREE.MathUtils.clamp(cylinderU, 0, 1))
     }
+    currentRadius = Math.max(currentRadius, 0.001)
 
     const vertex = new THREE.Vector3(
       Math.cos(phi) * currentRadius,
@@ -948,6 +989,8 @@ function generateBeamDomeMesh(params: EffectMeshParams): THREE.BufferGeometry {
     vertex.y -= capTipY
     vertex.applyAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI * -0.5)
     vertex.applyAxisAngle(new THREE.Vector3(0, 0, 1), (1 - u) * params.twist * Math.PI)
+    vertex.x += centerWaveOffsetX
+    vertex.y += centerWaveOffsetY
     return vertex
   })
 

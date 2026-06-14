@@ -38,11 +38,19 @@ export interface UiText {
   spreadStart: string
   spreadEnd: string
   twist: string
+  wave: string
   waveCount: string
+  waveCountX: string
+  waveCountY: string
   waveHeight: string
+  waveHeightX: string
+  waveHeightY: string
   seed: string
+  seedX: string
+  seedY: string
   cylinderDivisions: string
   cylinderScale: string
+  beamEndCap: string
   yClip: string
   wireframe: string
   showUV: string
@@ -187,11 +195,19 @@ export const uiText: Record<Language, UiText> = {
     spreadStart: '広がり 下部',
     spreadEnd: '広がり 上部',
     twist: 'ねじれ',
+    wave: '波',
     waveCount: '波数',
+    waveCountX: '波数 X',
+    waveCountY: '波数 Y',
     waveHeight: '波の高さ',
+    waveHeightX: '波の高さ X',
+    waveHeightY: '波の高さ Y',
     seed: 'シード',
+    seedX: 'シード X',
+    seedY: 'シード Y',
     cylinderDivisions: '分割数/円柱',
     cylinderScale: '円柱スケール',
+    beamEndCap: '先端を閉じる',
     yClip: 'Yクリップ',
     wireframe: 'ワイヤーフレーム',
     showUV: 'UV表示',
@@ -314,11 +330,19 @@ export const uiText: Record<Language, UiText> = {
     spreadStart: 'Spread Bottom',
     spreadEnd: 'Spread Top',
     twist: 'Twist',
+    wave: 'Wave',
     waveCount: 'Wave Count',
+    waveCountX: 'Wave Count X',
+    waveCountY: 'Wave Count Y',
     waveHeight: 'Wave Height',
+    waveHeightX: 'Wave Height X',
+    waveHeightY: 'Wave Height Y',
     seed: 'Seed',
+    seedX: 'Seed X',
+    seedY: 'Seed Y',
     cylinderDivisions: 'Divisions / Cylinder',
     cylinderScale: 'Cylinder Scale',
+    beamEndCap: 'Close Tip',
     yClip: 'Y Clip',
     wireframe: 'Wireframe',
     showUV: 'Show UV',

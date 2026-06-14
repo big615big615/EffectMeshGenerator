@@ -255,6 +255,16 @@ body.range-input-dragging * {
   border-bottom: 1px solid #333;
 }
 
+.control-group.inline-toggle-row {
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.control-group.inline-toggle-row label {
+  margin: 0;
+}
+
 .toggle-btn {
   background: #181818;
   color: #00ff88;
