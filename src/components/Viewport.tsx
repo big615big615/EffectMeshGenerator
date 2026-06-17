@@ -31,6 +31,7 @@ const BACK_SURFACE_COLOR = 0xff4f8b
 const BACK_SURFACE_EMISSIVE = 0x66152d
 const UV_SCROLL_SPEED = 0.35
 const THUMBNAIL_CAMERA_SIZE = 1.55
+const PIVOT_RING_OBJECT_NAME = 'pivot-camera-facing-ring'
 
 // Management controls: set to true when exposing thumbnail angle export.
 const SHOW_MANAGEMENT_CONTROLS = false
@@ -201,8 +202,19 @@ const Viewport: React.FC<ViewportProps> = ({
     camera: THREE.PerspectiveCamera
   ) => {
     applyMeshRotation(autoRotateYRef.current ? autoRotateYOffsetRef.current : 0)
+    updatePivotMarkerFacing(camera)
     renderer.render(scene, camera)
     applyMeshRotation(0)
+  }
+
+  const updatePivotMarkerFacing = (camera: THREE.PerspectiveCamera) => {
+    const pivotMarker = pivotMarkerRef.current
+    if (!pivotMarker) return
+
+    const ring = pivotMarker.getObjectByName(PIVOT_RING_OBJECT_NAME)
+    if (ring) {
+      ring.quaternion.copy(camera.quaternion)
+    }
   }
 
   const renderMeshThumbnailGrid = (
@@ -1404,8 +1416,9 @@ const Viewport: React.FC<ViewportProps> = ({
 
   const createPivotMarker = (): THREE.Group => {
     const markerGroup = new THREE.Group()
+    markerGroup.renderOrder = 1000
     const axes = new THREE.AxesHelper(0.45)
-    axes.renderOrder = 10
+    axes.renderOrder = 1000
     axes.traverse((object) => {
       if (object instanceof THREE.LineSegments) {
         const material = object.material
@@ -1413,25 +1426,42 @@ const Viewport: React.FC<ViewportProps> = ({
           material.forEach((item) => {
             item.depthTest = false
             item.depthWrite = false
+            item.transparent = true
           })
         } else {
           material.depthTest = false
           material.depthWrite = false
+          material.transparent = true
         }
       }
     })
 
-    const center = new THREE.Mesh(
-      new THREE.SphereGeometry(0.06, 16, 8),
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.07, 0.085, 48),
       new THREE.MeshBasicMaterial({
         color: 0xffffff,
         depthTest: false,
         depthWrite: false,
+        transparent: true,
+        opacity: 0.9,
+        side: THREE.DoubleSide,
       })
     )
-    center.renderOrder = 11
+    ring.name = PIVOT_RING_OBJECT_NAME
+    ring.renderOrder = 1001
 
-    markerGroup.add(axes, center)
+    const center = new THREE.Mesh(
+      new THREE.SphereGeometry(0.018, 16, 8),
+      new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        depthTest: false,
+        depthWrite: false,
+        transparent: true,
+      })
+    )
+    center.renderOrder = 1002
+
+    markerGroup.add(axes, ring, center)
     return markerGroup
   }
 

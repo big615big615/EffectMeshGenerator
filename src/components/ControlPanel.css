@@ -315,6 +315,12 @@ body.range-input-dragging * {
   font-weight: 600;
 }
 
+.pivot-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .texture-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;

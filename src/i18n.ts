@@ -79,6 +79,7 @@ export interface UiText {
   pivot: string
   pivotPosition: string
   pivotToBoundsCenter: string
+  pivotSnapToVertex: string
   scale: string
   rotation: string
   dragToAdjust: string
@@ -235,7 +236,8 @@ export const uiText: Record<Language, UiText> = {
     off: 'オフ',
     pivot: 'ピボット',
     pivotPosition: 'ピボット位置',
-    pivotToBoundsCenter: 'BBox中心へ',
+    pivotToBoundsCenter: '中心へ',
+    pivotSnapToVertex: 'スナップ',
     scale: 'スケール',
     rotation: '回転',
     dragToAdjust: '左右にドラッグして調整',
@@ -370,7 +372,8 @@ export const uiText: Record<Language, UiText> = {
     off: 'OFF',
     pivot: 'Pivot',
     pivotPosition: 'Pivot Position',
-    pivotToBoundsCenter: 'To BBox Center',
+    pivotToBoundsCenter: 'Center',
+    pivotSnapToVertex: 'Snap',
     scale: 'Scale',
     rotation: 'Rotation',
     dragToAdjust: 'Drag horizontally to adjust',

@@ -564,6 +564,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 }) => {
   const [isExporting, setIsExporting] = useState(false)
   const [isLegalPanelOpen, setIsLegalPanelOpen] = useState(false)
+  const [snapPivotToVertex, setSnapPivotToVertex] = useState(false)
   const t = uiText[language]
   const textureFileInputRef = useRef<HTMLInputElement | null>(null)
   const pivotDragRef = useRef<{
@@ -834,7 +835,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   }
 
   const handlePivotChange = (key: keyof ControlPanelProps['pivot'], value: number) => {
-    setPivot({ ...pivot, [key]: value })
+    setPivot({ ...pivot, [key]: getPivotValueForInput(key, value) })
   }
 
   const handleMovePivotToBoundsCenter = () => {
@@ -893,6 +894,42 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const roundScaleValue = (value: number) => Math.round(value * 1000) / 1000
   const roundRotationValue = (value: number) => Math.round(value * 1000) / 1000
   const roundTextureTilingValue = (value: number) => Math.round(value * 1000) / 1000
+  const getPivotValueForInput = (
+    key: keyof ControlPanelProps['pivot'],
+    value: number
+  ) => {
+    if (!snapPivotToVertex) return roundPivotValue(value)
+    return getNearestVertexCoordinate(key, value)
+  }
+  const getNearestVertexCoordinate = (
+    key: keyof ControlPanelProps['pivot'],
+    value: number
+  ) => {
+    if (!mesh) return roundPivotValue(value)
+
+    const positionAttribute = mesh.geometry.getAttribute('position')
+    if (!positionAttribute) return roundPivotValue(value)
+
+    mesh.updateMatrixWorld(true)
+
+    let nearestValue = value
+    let nearestDistance = Number.POSITIVE_INFINITY
+    const vertex = new THREE.Vector3()
+
+    for (let i = 0; i < positionAttribute.count; i++) {
+      vertex.fromBufferAttribute(positionAttribute, i)
+      mesh.localToWorld(vertex)
+
+      const candidate = vertex[key]
+      const distance = Math.abs(candidate - value)
+      if (distance < nearestDistance) {
+        nearestDistance = distance
+        nearestValue = candidate
+      }
+    }
+
+    return roundPivotValue(nearestValue)
+  }
   const parseScaleInput = (value: string) => {
     const parsedValue = parseFloat(value)
     return Number.isFinite(parsedValue) ? parsedValue : 1
@@ -1812,14 +1849,24 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       <div className="control-group">
         <div className="texture-display-row">
           <label>{t.pivotPosition}</label>
-          <button
-            type="button"
-            className="toggle-btn"
-            onClick={handleMovePivotToBoundsCenter}
-            disabled={!mesh}
-          >
-            {t.pivotToBoundsCenter}
-          </button>
+          <div className="pivot-actions">
+            <button
+              type="button"
+              className="toggle-btn"
+              onClick={handleMovePivotToBoundsCenter}
+              disabled={!mesh}
+            >
+              {t.pivotToBoundsCenter}
+            </button>
+            <button
+              type="button"
+              className={`toggle-btn ${snapPivotToVertex ? 'active' : ''}`}
+              onClick={() => setSnapPivotToVertex(!snapPivotToVertex)}
+              disabled={!mesh}
+            >
+              {t.pivotSnapToVertex}
+            </button>
+          </div>
         </div>
         <div className="vector-inputs">
           <label>
