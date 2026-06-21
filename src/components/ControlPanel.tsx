@@ -515,6 +515,11 @@ interface ControlPanelProps {
   setLanguage: (value: Language) => void
 }
 
+type DraftNumberInputOptions = {
+  min?: number
+  applyDefaultValue?: (value: number) => void
+}
+
 const ControlPanel: React.FC<ControlPanelProps> = ({
   meshType,
   setMeshType,
@@ -565,6 +570,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const [isExporting, setIsExporting] = useState(false)
   const [isLegalPanelOpen, setIsLegalPanelOpen] = useState(false)
   const [snapPivotToVertex, setSnapPivotToVertex] = useState(false)
+  const [numberInputDrafts, setNumberInputDrafts] = useState<Record<string, string>>({})
   const t = uiText[language]
   const textureFileInputRef = useRef<HTMLInputElement | null>(null)
   const pivotDragRef = useRef<{
@@ -870,7 +876,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   ) => {
     setTextureTiling({
       ...textureTiling,
-      [key]: Math.max(0.01, value),
+      [key]: Math.max(0, value),
     })
   }
 
@@ -894,6 +900,63 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const roundScaleValue = (value: number) => Math.round(value * 1000) / 1000
   const roundRotationValue = (value: number) => Math.round(value * 1000) / 1000
   const roundTextureTilingValue = (value: number) => Math.round(value * 1000) / 1000
+  const getNumberInputValue = (inputKey: string, value: number) =>
+    Object.prototype.hasOwnProperty.call(numberInputDrafts, inputKey)
+      ? numberInputDrafts[inputKey]
+      : value
+  const clearNumberInputDraft = (inputKey: string) => {
+    setNumberInputDrafts((drafts) => {
+      if (!Object.prototype.hasOwnProperty.call(drafts, inputKey)) return drafts
+
+      const nextDrafts = { ...drafts }
+      delete nextDrafts[inputKey]
+      return nextDrafts
+    })
+  }
+  const clampNumberInputValue = (value: number, min?: number) =>
+    min === undefined ? value : Math.max(min, value)
+  const handleDraftNumberChange = (
+    inputKey: string,
+    rawValue: string,
+    defaultValue: number,
+    applyValue: (value: number) => void,
+    options: DraftNumberInputOptions = {}
+  ) => {
+    setNumberInputDrafts((drafts) => ({ ...drafts, [inputKey]: rawValue }))
+
+    const applyDefaultValue = options.applyDefaultValue ?? applyValue
+    if (rawValue === '') {
+      applyDefaultValue(defaultValue)
+      return
+    }
+
+    const parsedValue = Number(rawValue)
+    if (!Number.isFinite(parsedValue)) return
+
+    applyValue(clampNumberInputValue(parsedValue, options.min))
+  }
+  const handleDraftNumberBlur = (
+    inputKey: string,
+    defaultValue: number,
+    applyValue: (value: number) => void,
+    options: DraftNumberInputOptions = {}
+  ) => {
+    const draftValue = numberInputDrafts[inputKey]
+    const applyDefaultValue = options.applyDefaultValue ?? applyValue
+
+    if (draftValue === '') {
+      applyDefaultValue(defaultValue)
+    } else if (draftValue !== undefined) {
+      const parsedValue = Number(draftValue)
+      if (Number.isFinite(parsedValue)) {
+        applyValue(clampNumberInputValue(parsedValue, options.min))
+      } else {
+        applyDefaultValue(defaultValue)
+      }
+    }
+
+    clearNumberInputDraft(inputKey)
+  }
   const getPivotValueForInput = (
     key: keyof ControlPanelProps['pivot'],
     value: number
@@ -930,17 +993,61 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
     return roundPivotValue(nearestValue)
   }
-  const parseScaleInput = (value: string) => {
-    const parsedValue = parseFloat(value)
-    return Number.isFinite(parsedValue) ? parsedValue : 1
+  const handlePivotInputChange = (
+    key: keyof ControlPanelProps['pivot'],
+    rawValue: string
+  ) => {
+    handleDraftNumberChange(`pivot.${key}`, rawValue, 0, (value) => handlePivotChange(key, value), {
+      applyDefaultValue: (value) => setPivot({ ...pivot, [key]: roundPivotValue(value) }),
+    })
   }
-  const parseRotationInput = (value: string) => {
-    const parsedValue = parseFloat(value)
-    return Number.isFinite(parsedValue) ? parsedValue : 0
+  const handlePivotInputBlur = (key: keyof ControlPanelProps['pivot']) => {
+    handleDraftNumberBlur(`pivot.${key}`, 0, (value) => handlePivotChange(key, value), {
+      applyDefaultValue: (value) => setPivot({ ...pivot, [key]: roundPivotValue(value) }),
+    })
   }
-  const parseTextureTilingInput = (value: string) => {
-    const parsedValue = parseFloat(value)
-    return Number.isFinite(parsedValue) ? parsedValue : 1
+  const handleRotationInputChange = (
+    key: keyof ControlPanelProps['rotation'],
+    rawValue: string
+  ) => {
+    handleDraftNumberChange(`rotation.${key}`, rawValue, 0, (value) =>
+      handleRotationChange(key, roundRotationValue(value))
+    )
+  }
+  const handleRotationInputBlur = (key: keyof ControlPanelProps['rotation']) => {
+    handleDraftNumberBlur(`rotation.${key}`, 0, (value) =>
+      handleRotationChange(key, roundRotationValue(value))
+    )
+  }
+  const handleScaleInputChange = (key: keyof ControlPanelProps['scale'], rawValue: string) => {
+    handleDraftNumberChange(`scale.${key}`, rawValue, 1, (value) =>
+      handleScaleChange(key, roundScaleValue(value))
+    )
+  }
+  const handleScaleInputBlur = (key: keyof ControlPanelProps['scale']) => {
+    handleDraftNumberBlur(`scale.${key}`, 1, (value) =>
+      handleScaleChange(key, roundScaleValue(value))
+    )
+  }
+  const handleTextureTilingInputChange = (
+    key: keyof ControlPanelProps['textureTiling'],
+    rawValue: string
+  ) => {
+    handleDraftNumberChange(
+      `textureTiling.${key}`,
+      rawValue,
+      1,
+      (value) => handleTextureTilingChange(key, roundTextureTilingValue(value)),
+      { min: 0 }
+    )
+  }
+  const handleTextureTilingInputBlur = (key: keyof ControlPanelProps['textureTiling']) => {
+    handleDraftNumberBlur(
+      `textureTiling.${key}`,
+      1,
+      (value) => handleTextureTilingChange(key, roundTextureTilingValue(value)),
+      { min: 0 }
+    )
   }
 
   const handlePivotDragStart = (
@@ -949,6 +1056,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   ) => {
     if (event.button !== 0) return
 
+    clearNumberInputDraft(`pivot.${key}`)
     pivotDragRef.current = {
       key,
       startX: event.clientX,
@@ -990,6 +1098,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   ) => {
     if (event.button !== 0) return
 
+    clearNumberInputDraft(`rotation.${key}`)
     rotationDragRef.current = {
       key,
       startX: event.clientX,
@@ -1031,6 +1140,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   ) => {
     if (event.button !== 0) return
 
+    clearNumberInputDraft(`scale.${key}`)
     scaleDragRef.current = {
       key,
       startX: event.clientX,
@@ -1072,6 +1182,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   ) => {
     if (event.button !== 0) return
 
+    clearNumberInputDraft(`textureTiling.${key}`)
     textureTilingDragRef.current = {
       key,
       startX: event.clientX,
@@ -1796,28 +1907,30 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             X
             <input
               type="number"
-              min="0.01"
+              min="0"
               max="32"
               step="0.1"
               className="draggable-number"
               title={t.dragToAdjust}
-              value={textureTiling.x}
+              value={getNumberInputValue('textureTiling.x', textureTiling.x)}
               onPointerDown={(e) => handleTextureTilingDragStart(e, 'x')}
-              onChange={(e) => handleTextureTilingChange('x', parseTextureTilingInput(e.target.value))}
+              onChange={(e) => handleTextureTilingInputChange('x', e.target.value)}
+              onBlur={() => handleTextureTilingInputBlur('x')}
             />
           </label>
           <label>
             Y
             <input
               type="number"
-              min="0.01"
+              min="0"
               max="32"
               step="0.1"
               className="draggable-number"
               title={t.dragToAdjust}
-              value={textureTiling.y}
+              value={getNumberInputValue('textureTiling.y', textureTiling.y)}
               onPointerDown={(e) => handleTextureTilingDragStart(e, 'y')}
-              onChange={(e) => handleTextureTilingChange('y', parseTextureTilingInput(e.target.value))}
+              onChange={(e) => handleTextureTilingInputChange('y', e.target.value)}
+              onBlur={() => handleTextureTilingInputBlur('y')}
             />
           </label>
         </div>
@@ -1876,9 +1989,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               step="0.1"
               className="draggable-number"
               title={t.dragToAdjust}
-              value={pivot.x}
+              value={getNumberInputValue('pivot.x', pivot.x)}
               onPointerDown={(e) => handlePivotDragStart(e, 'x')}
-              onChange={(e) => handlePivotChange('x', parseFloat(e.target.value) || 0)}
+              onChange={(e) => handlePivotInputChange('x', e.target.value)}
+              onBlur={() => handlePivotInputBlur('x')}
             />
           </label>
           <label>
@@ -1888,9 +2002,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               step="0.1"
               className="draggable-number"
               title={t.dragToAdjust}
-              value={pivot.y}
+              value={getNumberInputValue('pivot.y', pivot.y)}
               onPointerDown={(e) => handlePivotDragStart(e, 'y')}
-              onChange={(e) => handlePivotChange('y', parseFloat(e.target.value) || 0)}
+              onChange={(e) => handlePivotInputChange('y', e.target.value)}
+              onBlur={() => handlePivotInputBlur('y')}
             />
           </label>
           <label>
@@ -1900,9 +2015,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               step="0.1"
               className="draggable-number"
               title={t.dragToAdjust}
-              value={pivot.z}
+              value={getNumberInputValue('pivot.z', pivot.z)}
               onPointerDown={(e) => handlePivotDragStart(e, 'z')}
-              onChange={(e) => handlePivotChange('z', parseFloat(e.target.value) || 0)}
+              onChange={(e) => handlePivotInputChange('z', e.target.value)}
+              onBlur={() => handlePivotInputBlur('z')}
             />
           </label>
         </div>
@@ -1918,9 +2034,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               step="1"
               className="draggable-number"
               title={t.dragToAdjust}
-              value={rotation.x}
+              value={getNumberInputValue('rotation.x', rotation.x)}
               onPointerDown={(e) => handleRotationDragStart(e, 'x')}
-              onChange={(e) => handleRotationChange('x', parseRotationInput(e.target.value))}
+              onChange={(e) => handleRotationInputChange('x', e.target.value)}
+              onBlur={() => handleRotationInputBlur('x')}
             />
           </label>
           <label>
@@ -1930,9 +2047,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               step="1"
               className="draggable-number"
               title={t.dragToAdjust}
-              value={rotation.y}
+              value={getNumberInputValue('rotation.y', rotation.y)}
               onPointerDown={(e) => handleRotationDragStart(e, 'y')}
-              onChange={(e) => handleRotationChange('y', parseRotationInput(e.target.value))}
+              onChange={(e) => handleRotationInputChange('y', e.target.value)}
+              onBlur={() => handleRotationInputBlur('y')}
             />
           </label>
           <label>
@@ -1942,9 +2060,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               step="1"
               className="draggable-number"
               title={t.dragToAdjust}
-              value={rotation.z}
+              value={getNumberInputValue('rotation.z', rotation.z)}
               onPointerDown={(e) => handleRotationDragStart(e, 'z')}
-              onChange={(e) => handleRotationChange('z', parseRotationInput(e.target.value))}
+              onChange={(e) => handleRotationInputChange('z', e.target.value)}
+              onBlur={() => handleRotationInputBlur('z')}
             />
           </label>
         </div>
@@ -1991,9 +2110,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               step="0.1"
               className="draggable-number"
               title={t.dragToAdjust}
-              value={scale.x}
+              value={getNumberInputValue('scale.x', scale.x)}
               onPointerDown={(e) => handleScaleDragStart(e, 'x')}
-              onChange={(e) => handleScaleChange('x', parseScaleInput(e.target.value))}
+              onChange={(e) => handleScaleInputChange('x', e.target.value)}
+              onBlur={() => handleScaleInputBlur('x')}
             />
           </label>
           <label>
@@ -2003,9 +2123,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               step="0.1"
               className="draggable-number"
               title={t.dragToAdjust}
-              value={scale.y}
+              value={getNumberInputValue('scale.y', scale.y)}
               onPointerDown={(e) => handleScaleDragStart(e, 'y')}
-              onChange={(e) => handleScaleChange('y', parseScaleInput(e.target.value))}
+              onChange={(e) => handleScaleInputChange('y', e.target.value)}
+              onBlur={() => handleScaleInputBlur('y')}
             />
           </label>
           <label>
@@ -2015,9 +2136,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
               step="0.1"
               className="draggable-number"
               title={t.dragToAdjust}
-              value={scale.z}
+              value={getNumberInputValue('scale.z', scale.z)}
               onPointerDown={(e) => handleScaleDragStart(e, 'z')}
-              onChange={(e) => handleScaleChange('z', parseScaleInput(e.target.value))}
+              onChange={(e) => handleScaleInputChange('z', e.target.value)}
+              onBlur={() => handleScaleInputBlur('z')}
             />
           </label>
         </div>
