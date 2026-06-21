@@ -180,6 +180,14 @@ const Viewport: React.FC<ViewportProps> = ({
   const meshThumbnailItemsRef = useRef<MeshThumbnailItem[]>([])
   const meshThumbnailDragRef = useRef<MeshThumbnailDragState | null>(null)
   const meshThumbnailGridNeedsRenderRef = useRef(true)
+  const cameraViewOffsetRef = useRef({ x: 0, y: 0 })
+  const cameraViewOffsetDragRef = useRef<{
+    pointerId: number
+    startX: number
+    startY: number
+    startOffsetX: number
+    startOffsetY: number
+  } | null>(null)
 
   const markMeshThumbnailGridDirty = () => {
     meshThumbnailGridNeedsRenderRef.current = true
@@ -194,6 +202,30 @@ const Viewport: React.FC<ViewportProps> = ({
       THREE.MathUtils.degToRad(currentRotation.y + yOffsetDegrees),
       THREE.MathUtils.degToRad(currentRotation.z)
     )
+  }
+
+  const updateCameraProjection = (
+    camera: THREE.PerspectiveCamera,
+    viewportWidth: number,
+    viewportHeight: number
+  ) => {
+    camera.aspect = viewportWidth / viewportHeight
+
+    const viewOffset = cameraViewOffsetRef.current
+    if (Math.abs(viewOffset.x) < 0.001 && Math.abs(viewOffset.y) < 0.001) {
+      camera.clearViewOffset()
+    } else {
+      camera.setViewOffset(
+        viewportWidth,
+        viewportHeight,
+        viewOffset.x,
+        viewOffset.y,
+        viewportWidth,
+        viewportHeight
+      )
+    }
+
+    camera.updateProjectionMatrix()
   }
 
   const renderPreviewScene = (
@@ -284,6 +316,19 @@ const Viewport: React.FC<ViewportProps> = ({
   useEffect(() => {
     autoRotateYSpeedRef.current = autoRotateYSpeed
   }, [autoRotateYSpeed])
+
+  useEffect(() => {
+    cameraViewOffsetRef.current = { x: 0, y: 0 }
+
+    const camera = cameraRef.current
+    const container = containerRef.current
+    if (!camera || !container) return
+
+    const viewportWidth = showUVRef.current
+      ? Math.floor(container.clientWidth / 2)
+      : container.clientWidth
+    updateCameraProjection(camera, viewportWidth, container.clientHeight)
+  }, [meshType])
 
   useEffect(() => {
     showMeshTypeGridRef.current = showMeshTypeGrid
@@ -409,11 +454,69 @@ const Viewport: React.FC<ViewportProps> = ({
     controls.enableDamping = true
     controls.dampingFactor = 0.08
     controls.enablePan = false
+    controls.mouseButtons = {
+      LEFT: THREE.MOUSE.ROTATE,
+      MIDDLE: THREE.MOUSE.ROTATE,
+      RIGHT: THREE.MOUSE.ROTATE,
+    }
     controls.rotateSpeed = 0.8
     controls.minDistance = 2
     controls.maxDistance = 12
     controls.target.set(0, 0, 0)
     controls.update()
+
+    const applyCurrentCameraViewOffset = () => {
+      const currentWidth = containerRef.current?.clientWidth || width
+      const currentHeight = containerRef.current?.clientHeight || height
+      const previewWidth = showUVRef.current ? Math.floor(currentWidth / 2) : currentWidth
+      updateCameraProjection(camera, previewWidth, currentHeight)
+    }
+
+    const handleCameraViewOffsetPointerDown = (event: PointerEvent) => {
+      if (event.button !== 1 || showMeshTypeGridRef.current) return
+
+      event.preventDefault()
+      event.stopPropagation()
+      renderer.domElement.setPointerCapture(event.pointerId)
+      cameraViewOffsetDragRef.current = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        startOffsetX: cameraViewOffsetRef.current.x,
+        startOffsetY: cameraViewOffsetRef.current.y,
+      }
+      document.body.style.cursor = 'move'
+    }
+
+    const handleCameraViewOffsetPointerMove = (event: PointerEvent) => {
+      const drag = cameraViewOffsetDragRef.current
+      if (!drag || drag.pointerId !== event.pointerId) return
+
+      event.preventDefault()
+      cameraViewOffsetRef.current = {
+        x: drag.startOffsetX - (event.clientX - drag.startX),
+        y: drag.startOffsetY - (event.clientY - drag.startY),
+      }
+      applyCurrentCameraViewOffset()
+    }
+
+    const handleCameraViewOffsetPointerUp = (event: PointerEvent) => {
+      const drag = cameraViewOffsetDragRef.current
+      if (!drag || drag.pointerId !== event.pointerId) return
+
+      cameraViewOffsetDragRef.current = null
+      document.body.style.cursor = ''
+      if (renderer.domElement.hasPointerCapture(event.pointerId)) {
+        renderer.domElement.releasePointerCapture(event.pointerId)
+      }
+    }
+
+    renderer.domElement.addEventListener('pointerdown', handleCameraViewOffsetPointerDown, {
+      capture: true,
+    })
+    renderer.domElement.addEventListener('pointermove', handleCameraViewOffsetPointerMove)
+    renderer.domElement.addEventListener('pointerup', handleCameraViewOffsetPointerUp)
+    renderer.domElement.addEventListener('pointercancel', handleCameraViewOffsetPointerUp)
 
     // Animation loop
     let animationId: number
@@ -457,8 +560,7 @@ const Viewport: React.FC<ViewportProps> = ({
         const halfWidth = Math.floor(currentWidth / 2)
         const uvWidth = currentWidth - halfWidth
 
-        camera.aspect = halfWidth / currentHeight
-        camera.updateProjectionMatrix()
+        updateCameraProjection(camera, halfWidth, currentHeight)
         if (uvCameraRef.current) {
           updateUVPreviewCamera(uvCameraRef.current, uvWidth, currentHeight)
         }
@@ -485,8 +587,7 @@ const Viewport: React.FC<ViewportProps> = ({
       } else {
         const currentWidth = containerRef.current?.clientWidth || width
         const currentHeight = containerRef.current?.clientHeight || height
-        camera.aspect = currentWidth / currentHeight
-        camera.updateProjectionMatrix()
+        updateCameraProjection(camera, currentWidth, currentHeight)
         renderer.setViewport(0, 0, currentWidth, currentHeight)
         renderer.setClearColor(0x1a1a1a, 1)
         renderer.clear()
@@ -501,8 +602,7 @@ const Viewport: React.FC<ViewportProps> = ({
       const newHeight = containerRef.current?.clientHeight || height
       if (newWidth <= 0 || newHeight <= 0) return
 
-      camera.aspect = newWidth / newHeight
-      camera.updateProjectionMatrix()
+      updateCameraProjection(camera, showUVRef.current ? Math.floor(newWidth / 2) : newWidth, newHeight)
       if (uvCameraRef.current) {
         updateUVPreviewCamera(uvCameraRef.current, Math.ceil(newWidth / 2), newHeight)
       }
@@ -524,6 +624,12 @@ const Viewport: React.FC<ViewportProps> = ({
       cancelAnimationFrame(animationId)
       resizeObserver?.disconnect()
       window.removeEventListener('resize', handleResize)
+      renderer.domElement.removeEventListener('pointerdown', handleCameraViewOffsetPointerDown, {
+        capture: true,
+      })
+      renderer.domElement.removeEventListener('pointermove', handleCameraViewOffsetPointerMove)
+      renderer.domElement.removeEventListener('pointerup', handleCameraViewOffsetPointerUp)
+      renderer.domElement.removeEventListener('pointercancel', handleCameraViewOffsetPointerUp)
       controls.dispose()
       containerRef.current?.removeChild(renderer.domElement)
       geometry.dispose()
