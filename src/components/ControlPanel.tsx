@@ -186,7 +186,7 @@ const HONEYCOMB_PLANE_DEFAULT_PARAMS: EffectMeshParams = {
   seed: 0,
   yClip: 0,
   cylinderScale: 1,
-  honeycombUvMode: 'square',
+  honeycombUvMode: 'layout',
   honeycombExtraOffsetRows: false,
   honeycombXCurve: 0,
   honeycombRandomRemoval: 0,
@@ -206,7 +206,7 @@ const HONEYCOMB_RADIAL_PLANE_DEFAULT_PARAMS: EffectMeshParams = {
   seed: 0,
   yClip: 0,
   cylinderScale: 1,
-  honeycombUvMode: 'square',
+  honeycombUvMode: 'layout',
   honeycombCenterRingRemoval: 0,
   honeycombXCurve: 0,
   honeycombRandomRemoval: 0,
@@ -226,7 +226,7 @@ const HONEYCOMB_SPHERE_DEFAULT_PARAMS: EffectMeshParams = {
   seed: 0,
   yClip: 0,
   cylinderScale: 1,
-  honeycombUvMode: 'square',
+  honeycombUvMode: 'layout',
   honeycombRandomRemoval: 0,
 }
 
@@ -1830,9 +1830,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           <select
             id="honeycombUvMode"
             className="mesh-type-select"
-            value={params.honeycombUvMode ?? 'square'}
+            value={params.honeycombUvMode ?? 'layout'}
             onChange={handleHoneycombUvModeChange}
           >
+            <option value="layout">{t.honeycombUvLayout}</option>
             <option value="square">{t.honeycombUvSquare}</option>
             <option value="polygon">{t.honeycombUvPolygon}</option>
           </select>

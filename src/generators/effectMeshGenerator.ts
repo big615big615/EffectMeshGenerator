@@ -29,7 +29,7 @@ export type EffectMeshType =
   | 'openCylinder'
   | 'beamDome'
 
-export type HoneycombUvMode = 'square' | 'polygon'
+export type HoneycombUvMode = 'square' | 'polygon' | 'layout'
 
 export interface EffectMeshParams {
   divisions: number

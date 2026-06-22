@@ -25,6 +25,7 @@ import './Viewport.css'
 
 const UV_VIEW_PADDING = 1.08
 const SLASH_UV_ROTATION_OFFSET = 270
+const HONEYCOMB_UV_ROTATION_OFFSET = 0
 const FRONT_SURFACE_COLOR = 0x00ff88
 const FRONT_SURFACE_EMISSIVE = 0x00aa44
 const BACK_SURFACE_COLOR = 0xff4f8b
@@ -1211,7 +1212,7 @@ const Viewport: React.FC<ViewportProps> = ({
           : shouldUseDoubleSidedGeometry(selectedMeshType, shouldDoubleSide)
             ? createDoubleSidedEffectGeometry(selectedMeshType, meshParams)
             : generateEffectMesh(selectedMeshType, meshParams)
-    applyUVRotation(geometry, rotation + SLASH_UV_ROTATION_OFFSET)
+    applyUVRotation(geometry, rotation + getUvRotationOffset(selectedMeshType))
 
     if (shouldMirrorZ) {
       const mirroredGeometry = createZMirroredGeometry(geometry)
@@ -1238,6 +1239,16 @@ const Viewport: React.FC<ViewportProps> = ({
       selectedMeshType === 'openCylinder'
     ) &&
     shouldDoubleSide
+
+  const getUvRotationOffset = (selectedMeshType: EffectMeshType): number =>
+    isHoneycombMeshType(selectedMeshType)
+      ? HONEYCOMB_UV_ROTATION_OFFSET
+      : SLASH_UV_ROTATION_OFFSET
+
+  const isHoneycombMeshType = (selectedMeshType: EffectMeshType): boolean =>
+    selectedMeshType === 'honeycombPlane' ||
+    selectedMeshType === 'honeycombRadialPlane' ||
+    selectedMeshType === 'honeycombSphere'
 
   const shouldUseCrossGeometry = (
     selectedMeshType: EffectMeshType,

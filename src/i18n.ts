@@ -32,6 +32,7 @@ export interface UiText {
   honeycombUvMode: string
   honeycombUvSquare: string
   honeycombUvPolygon: string
+  honeycombUvLayout: string
   honeycombExtraOffsetRows: string
   honeycombCenterRingRemoval: string
   bottomSpread: string
@@ -189,7 +190,8 @@ export const uiText: Record<Language, UiText> = {
     honeycombRandomSeed: 'ランダムシード',
     honeycombUvMode: 'UV形状',
     honeycombUvSquare: '四角',
-    honeycombUvPolygon: '元の形状',
+    honeycombUvPolygon: '六角形',
+    honeycombUvLayout: '全体配置',
     honeycombExtraOffsetRows: '偶数列+1',
     honeycombCenterRingRemoval: '中心リング削除',
     bottomSpread: '下部広がり',
@@ -325,7 +327,8 @@ export const uiText: Record<Language, UiText> = {
     honeycombRandomSeed: 'Random Seed',
     honeycombUvMode: 'UV Shape',
     honeycombUvSquare: 'Square',
-    honeycombUvPolygon: 'Original',
+    honeycombUvPolygon: 'Hexagon',
+    honeycombUvLayout: 'Layout',
     honeycombExtraOffsetRows: 'Even Columns +1',
     honeycombCenterRingRemoval: 'Remove Center Rings',
     bottomSpread: 'Bottom Spread',

@@ -28,7 +28,7 @@ type Triangle = [number, number, number]
 
 const HEX_CORNER_COUNT = 6
 const HEX_HEIGHT_SCALE = Math.sqrt(3)
-const HONEYCOMB_UV_MODE_SQUARE: HoneycombUvMode = 'square'
+const HONEYCOMB_UV_MODE_LAYOUT: HoneycombUvMode = 'layout'
 const HONEYCOMB_FULL_RING_CURVE = 2
 const SPHERICAL_UV_REFERENCE_AXES = [
   new THREE.Vector3(0, 1, 0),
@@ -484,19 +484,26 @@ function createHoneycombGeometry(
   const positions: number[] = []
   const uvs: number[] = []
   const indices: number[] = []
+  const layoutUvBounds =
+    uvMode === 'layout' ? getPlanarHoneycombLayoutUvBounds(cells, cellInset) : null
 
   cells.forEach((cell) => {
     const baseIndex = positions.length / 3
     const displayCorners = cell.corners.map((corner) =>
       corner.clone().lerp(cell.center, cellInset)
     )
+    const uvPoints = [cell.center, ...displayCorners]
     const vertices = [mapVertex(cell.center), ...displayCorners.map(mapVertex)]
 
     vertices.forEach((vertex) => {
       positions.push(vertex.x, vertex.y, vertex.z)
     })
 
-    pushHoneycombUVs(uvs, cell.corners.length, uvMode)
+    if (layoutUvBounds) {
+      pushPlanarHoneycombLayoutUVs(uvs, uvPoints, layoutUvBounds)
+    } else {
+      pushHoneycombUVs(uvs, cell.corners.length, uvMode)
+    }
 
     for (let i = 0; i < HEX_CORNER_COUNT; i++) {
       const a = baseIndex
@@ -537,7 +544,11 @@ function createSphericalHoneycombGeometry(
       positions.push(vertex.x, vertex.y, vertex.z)
     })
 
-    pushHoneycombUVs(uvs, cell.corners.length, uvMode)
+    if (uvMode === 'layout') {
+      pushSphericalHoneycombLayoutUVs(uvs, vertices)
+    } else {
+      pushHoneycombUVs(uvs, cell.corners.length, uvMode)
+    }
 
     for (let i = 0; i < cell.corners.length; i++) {
       const a = baseIndex
@@ -589,6 +600,48 @@ function pushHoneycombUVs(
   }
 
   pushSquareBoundaryPolygonUVs(uvs, cornerCount)
+}
+
+function getPlanarHoneycombLayoutUvBounds(
+  cells: HoneycombCell[],
+  cellInset: number
+): THREE.Box2 {
+  const bounds = new THREE.Box2()
+
+  cells.forEach((cell) => {
+    bounds.expandByPoint(cell.center)
+    cell.corners.forEach((corner) => {
+      bounds.expandByPoint(corner.clone().lerp(cell.center, cellInset))
+    })
+  })
+
+  return bounds
+}
+
+function pushPlanarHoneycombLayoutUVs(
+  uvs: number[],
+  points: THREE.Vector2[],
+  bounds: THREE.Box2
+): void {
+  const width = Math.max(bounds.max.x - bounds.min.x, 0.0001)
+  const height = Math.max(bounds.max.y - bounds.min.y, 0.0001)
+
+  points.forEach((point) => {
+    const u = (point.x - bounds.min.x) / width
+    const v = 1 - (point.y - bounds.min.y) / height
+    uvs.push(u, v)
+  })
+}
+
+function pushSphericalHoneycombLayoutUVs(uvs: number[], vertices: THREE.Vector3[]): void {
+  vertices.forEach((vertex) => {
+    const direction = vertex.clone().normalize()
+    const longitude = Math.atan2(direction.x, direction.z)
+    const latitude = Math.asin(THREE.MathUtils.clamp(direction.y, -1, 1))
+    const u = (longitude + Math.PI) / (Math.PI * 2)
+    const v = 1 - (latitude + Math.PI * 0.5) / Math.PI
+    uvs.push(u, v)
+  })
 }
 
 function pushRegularPolygonUVs(uvs: number[], cornerCount: number): void {
@@ -893,7 +946,7 @@ function getHoneycombPlanarSize(params: EffectMeshParams): number {
 }
 
 function getHoneycombUvMode(params: EffectMeshParams): HoneycombUvMode {
-  return params.honeycombUvMode ?? HONEYCOMB_UV_MODE_SQUARE
+  return params.honeycombUvMode ?? HONEYCOMB_UV_MODE_LAYOUT
 }
 
 function getHoneycombCenterRingRemoval(params: EffectMeshParams): number {
