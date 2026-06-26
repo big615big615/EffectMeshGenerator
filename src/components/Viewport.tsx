@@ -32,6 +32,7 @@ const BACK_SURFACE_COLOR = 0xff4f8b
 const BACK_SURFACE_EMISSIVE = 0x66152d
 const UV_SCROLL_SPEED = 0.35
 const THUMBNAIL_CAMERA_SIZE = 1.55
+const DEFAULT_VERTEX_ALPHA_RANGE = 0.5
 const PIVOT_RING_OBJECT_NAME = 'pivot-camera-facing-ring'
 
 // Management controls: set to true when exposing thumbnail angle export.
@@ -395,12 +396,14 @@ const Viewport: React.FC<ViewportProps> = ({
     const frontMaterial = createSurfaceMaterial(
       THREE.FrontSide,
       true,
-      shouldShowSurfaceTexture ? checkerTexture : null
+      shouldShowSurfaceTexture ? checkerTexture : null,
+      hasVertexAlpha(geometry)
     )
     const backMaterial = createSurfaceMaterial(
       THREE.BackSide,
       false,
-      shouldShowSurfaceTexture ? checkerTexture : null
+      shouldShowSurfaceTexture ? checkerTexture : null,
+      hasVertexAlpha(geometry)
     )
     const mesh = new THREE.Mesh(geometry, frontMaterial)
     mesh.position.set(pivot.x, pivot.y, pivot.z)
@@ -684,6 +687,8 @@ const Viewport: React.FC<ViewportProps> = ({
       uvWireframeRef.current = newUVWireframe
       uvSceneRef.current?.add(newUVWireframe)
     }
+
+    applyPreviewTexture(getPreviewTexture())
   }, [meshType, params, uvRotation, mirrorZ, doubleSided, crossMesh, pivot])
 
   useEffect(() => {
@@ -770,12 +775,13 @@ const Viewport: React.FC<ViewportProps> = ({
     const frontMaterial = meshRef.current.material
     const backMaterial = backMeshRef.current?.material
     const shouldShowSurfaceTexture = showUV || showTextureIn3D
+    const useVertexAlpha = hasVertexAlpha(meshRef.current.geometry)
     const updateMaterial = (mat: THREE.Material, isFrontSurface: boolean) => {
       if (mat instanceof THREE.MeshPhongMaterial) {
         mat.wireframe = false
         mat.map = shouldShowSurfaceTexture ? texture : null
         mat.emissiveMap = shouldShowSurfaceTexture ? texture : null
-        applySurfaceAppearance(mat, isFrontSurface, shouldShowSurfaceTexture)
+        applySurfaceAppearance(mat, isFrontSurface, shouldShowSurfaceTexture, useVertexAlpha)
         mat.polygonOffset = wireframe
         mat.needsUpdate = true
       }
@@ -857,11 +863,12 @@ const Viewport: React.FC<ViewportProps> = ({
 
     if (!meshRef.current) return
 
+    const useVertexAlpha = hasVertexAlpha(meshRef.current.geometry)
     const updateMaterial = (mat: THREE.Material, isFrontSurface: boolean) => {
       if (mat instanceof THREE.MeshPhongMaterial) {
         mat.map = showSurfaceTextureRef.current ? texture : null
         mat.emissiveMap = showSurfaceTextureRef.current ? texture : null
-        applySurfaceAppearance(mat, isFrontSurface, showSurfaceTextureRef.current)
+        applySurfaceAppearance(mat, isFrontSurface, showSurfaceTextureRef.current, useVertexAlpha)
         mat.needsUpdate = true
       }
     }
@@ -934,27 +941,31 @@ const Viewport: React.FC<ViewportProps> = ({
   const createSurfaceMaterial = (
     side: THREE.Side,
     isFrontSurface: boolean,
-    map: THREE.Texture | null
+    map: THREE.Texture | null,
+    useVertexAlpha: boolean
   ): THREE.MeshPhongMaterial => {
     const material = new THREE.MeshPhongMaterial({
       wireframe: false,
       map,
       side,
-      transparent: map !== null,
-      alphaTest: map !== null ? 0.001 : 0,
+      vertexColors: useVertexAlpha,
+      transparent: map !== null || useVertexAlpha,
+      alphaTest: map !== null || useVertexAlpha ? 0.001 : 0,
       polygonOffset: wireframe,
       polygonOffsetFactor: 1,
       polygonOffsetUnits: 1,
     })
-    applySurfaceAppearance(material, isFrontSurface, map !== null)
+    applySurfaceAppearance(material, isFrontSurface, map !== null, useVertexAlpha)
     return material
   }
 
   const applySurfaceAppearance = (
     material: THREE.MeshPhongMaterial,
     isFrontSurface: boolean,
-    useTextureColor: boolean
+    useTextureColor: boolean,
+    useVertexAlpha: boolean
   ) => {
+    material.vertexColors = useVertexAlpha
     material.color.setHex(
       useTextureColor
         ? 0x000000
@@ -970,8 +981,8 @@ const Viewport: React.FC<ViewportProps> = ({
           : BACK_SURFACE_EMISSIVE
     )
     material.emissiveMap = useTextureColor ? material.map : null
-    material.transparent = useTextureColor
-    material.alphaTest = useTextureColor ? 0.001 : 0
+    material.transparent = useTextureColor || useVertexAlpha
+    material.alphaTest = useTextureColor || useVertexAlpha ? 0.001 : 0
   }
 
   const handleViewportPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -1212,17 +1223,189 @@ const Viewport: React.FC<ViewportProps> = ({
           : shouldUseDoubleSidedGeometry(selectedMeshType, shouldDoubleSide)
             ? createDoubleSidedEffectGeometry(selectedMeshType, meshParams)
             : generateEffectMesh(selectedMeshType, meshParams)
-    applyUVRotation(geometry, rotation + getUvRotationOffset(selectedMeshType))
-
     if (shouldMirrorZ) {
       const mirroredGeometry = createZMirroredGeometry(geometry)
       geometry.dispose()
       mirroredGeometry.translate(-pivotPosition.x, -pivotPosition.y, -pivotPosition.z)
+      applyVertexAlphaGradient(mirroredGeometry, selectedMeshType, meshParams)
+      applyUVRotation(mirroredGeometry, rotation + getUvRotationOffset(selectedMeshType))
       return mirroredGeometry
     }
 
     geometry.translate(-pivotPosition.x, -pivotPosition.y, -pivotPosition.z)
+    applyVertexAlphaGradient(geometry, selectedMeshType, meshParams)
+    applyUVRotation(geometry, rotation + getUvRotationOffset(selectedMeshType))
     return geometry
+  }
+
+  type VertexAlphaAxis = 'x' | 'y' | 'z'
+  type VertexAlphaEdge = 'min' | 'max'
+  type VertexAlphaProfile =
+    | { type: 'axis'; axis: VertexAlphaAxis; firstEdge: VertexAlphaEdge; secondEdge: VertexAlphaEdge }
+    | { type: 'uvU'; firstEdge: VertexAlphaEdge; secondEdge: VertexAlphaEdge }
+    | { type: 'radius'; firstEdge: VertexAlphaEdge; secondEdge: VertexAlphaEdge }
+
+  const applyVertexAlphaGradient = (
+    geometry: THREE.BufferGeometry,
+    selectedMeshType: EffectMeshType,
+    meshParams: EffectMeshParams
+  ) => {
+    const alphaProfile = getVertexAlphaProfile(selectedMeshType)
+
+    if (!alphaProfile || !(meshParams.vertexAlphaEnabled ?? false)) {
+      geometry.deleteAttribute('color')
+      return
+    }
+
+    const firstAlphaStrength = THREE.MathUtils.clamp(meshParams.topAlpha ?? 1, 0, 2)
+    const secondAlphaStrength = THREE.MathUtils.clamp(meshParams.bottomAlpha ?? 1, 0, 2)
+    const firstAlphaRange = THREE.MathUtils.clamp(
+      meshParams.topAlphaRange ?? meshParams.alphaRange ?? DEFAULT_VERTEX_ALPHA_RANGE,
+      0,
+      1
+    )
+    const secondAlphaRange = THREE.MathUtils.clamp(
+      meshParams.bottomAlphaRange ?? meshParams.alphaRange ?? DEFAULT_VERTEX_ALPHA_RANGE,
+      0,
+      1
+    )
+    const effectiveFirstAlphaStrength = firstAlphaRange <= 0 ? 0 : firstAlphaStrength
+    const effectiveSecondAlphaStrength = secondAlphaRange <= 0 ? 0 : secondAlphaStrength
+    if (effectiveFirstAlphaStrength <= 0 && effectiveSecondAlphaStrength <= 0) {
+      geometry.deleteAttribute('color')
+      return
+    }
+
+    const position = geometry.getAttribute('position')
+    const uv = geometry.getAttribute('uv')
+    if (!position) return
+
+    geometry.computeBoundingBox()
+    const boundingBox = geometry.boundingBox
+    if (!boundingBox) return
+
+    const radiusBounds = alphaProfile.type === 'radius' ? getRadiusBounds(position, boundingBox) : null
+    const colors = new Float32Array(position.count * 4)
+
+    for (let i = 0; i < position.count; i++) {
+      const ratio = getVertexAlphaRatio(position, uv, i, alphaProfile, boundingBox, radiusBounds)
+      const firstFade = smoothstep(0, firstAlphaRange, getEdgeDistance(ratio, alphaProfile.firstEdge))
+      const secondFade = smoothstep(0, secondAlphaRange, getEdgeDistance(ratio, alphaProfile.secondEdge))
+      const alphaFromFirst = THREE.MathUtils.clamp(
+        1 - effectiveFirstAlphaStrength * (1 - firstFade),
+        0,
+        1
+      )
+      const alphaFromSecond = THREE.MathUtils.clamp(
+        1 - effectiveSecondAlphaStrength * (1 - secondFade),
+        0,
+        1
+      )
+      const alpha = Math.min(alphaFromFirst, alphaFromSecond)
+      const offset = i * 4
+
+      colors[offset] = 1
+      colors[offset + 1] = 1
+      colors[offset + 2] = 1
+      colors[offset + 3] = alpha
+    }
+
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 4))
+  }
+
+  const getVertexAlphaProfile = (selectedMeshType: EffectMeshType): VertexAlphaProfile | null => {
+    switch (selectedMeshType) {
+      case 'arc':
+      case 'arcRibbon':
+        return { type: 'uvU', firstEdge: 'min', secondEdge: 'max' }
+      case 'slash':
+      case 'ribbon':
+      case 'lightningRibbon':
+      case 'risingSpiralRibbon':
+      case 'cylinderSpiralRibbon':
+      case 'plane':
+        return { type: 'uvU', firstEdge: 'max', secondEdge: 'min' }
+      case 'beamDome':
+        return { type: 'axis', axis: 'z', firstEdge: 'min', secondEdge: 'max' }
+      case 'flatRing':
+      case 'honeycombRadialPlane':
+        return { type: 'radius', firstEdge: 'max', secondEdge: 'min' }
+      case 'openCylinder':
+      case 'sphere':
+      case 'hemisphere':
+      case 'zHemisphere':
+      case 'honeycombPlane':
+      case 'honeycombSphere':
+        return { type: 'axis', axis: 'y', firstEdge: 'max', secondEdge: 'min' }
+      default:
+        return null
+    }
+  }
+
+  const getVertexAlphaRatio = (
+    position: THREE.BufferAttribute | THREE.InterleavedBufferAttribute,
+    uv: THREE.BufferAttribute | THREE.InterleavedBufferAttribute | undefined,
+    index: number,
+    profile: VertexAlphaProfile,
+    boundingBox: THREE.Box3,
+    radiusBounds: { min: number; max: number } | null
+  ): number => {
+    if (profile.type === 'uvU' && uv) {
+      return THREE.MathUtils.clamp(uv.getX(index), 0, 1)
+    }
+
+    if (profile.type === 'uvU') {
+      return 0.5
+    }
+
+    if (profile.type === 'radius') {
+      const centerX = (boundingBox.min.x + boundingBox.max.x) * 0.5
+      const centerY = (boundingBox.min.y + boundingBox.max.y) * 0.5
+      const radius = Math.hypot(position.getX(index) - centerX, position.getY(index) - centerY)
+      const bounds = radiusBounds ?? { min: 0, max: 1 }
+      return THREE.MathUtils.clamp((radius - bounds.min) / Math.max(bounds.max - bounds.min, 0.000001), 0, 1)
+    }
+
+    const min = boundingBox.min[profile.axis]
+    const max = boundingBox.max[profile.axis]
+    const value = profile.axis === 'x'
+      ? position.getX(index)
+      : profile.axis === 'y'
+        ? position.getY(index)
+        : position.getZ(index)
+    return THREE.MathUtils.clamp((value - min) / Math.max(max - min, 0.000001), 0, 1)
+  }
+
+  const getRadiusBounds = (
+    position: THREE.BufferAttribute | THREE.InterleavedBufferAttribute,
+    boundingBox: THREE.Box3
+  ): { min: number; max: number } => {
+    let min = Number.POSITIVE_INFINITY
+    let max = Number.NEGATIVE_INFINITY
+    const centerX = (boundingBox.min.x + boundingBox.max.x) * 0.5
+    const centerY = (boundingBox.min.y + boundingBox.max.y) * 0.5
+
+    for (let i = 0; i < position.count; i++) {
+      const radius = Math.hypot(position.getX(i) - centerX, position.getY(i) - centerY)
+      min = Math.min(min, radius)
+      max = Math.max(max, radius)
+    }
+
+    return { min, max }
+  }
+
+  const getEdgeDistance = (ratio: number, edge: VertexAlphaEdge): number => (
+    edge === 'min' ? ratio : 1 - ratio
+  )
+
+  const hasVertexAlpha = (geometry: THREE.BufferGeometry): boolean => {
+    const color = geometry.getAttribute('color')
+    return !!color && color.itemSize >= 4
+  }
+
+  const smoothstep = (edge0: number, edge1: number, value: number): number => {
+    const amount = THREE.MathUtils.clamp((value - edge0) / Math.max(edge1 - edge0, 0.000001), 0, 1)
+    return amount * amount * (3 - amount * 2)
   }
 
   const shouldUseDoubleSidedGeometry = (

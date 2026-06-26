@@ -40,7 +40,7 @@ When changing mesh generation or export behavior, check:
 - OBJ export
 - Unity import behavior when possible
 
-FBX, GLB, and GLTF export code exists for reference, but their UI buttons are intentionally hidden until import behavior is reliable.
+FBX export is available as a minimal binary exporter for effect meshes. Keep export UI changes aligned with the currently supported public formats.
 
 ## Pull Request Guidelines
 

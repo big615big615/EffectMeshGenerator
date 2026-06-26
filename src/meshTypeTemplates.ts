@@ -30,6 +30,11 @@ const MESH_TYPE_TEMPLATE_PARAMS: Record<EffectMeshType, EffectMeshParams> = {
     topCurve: 0.2,
     taper: 0.35,
     spread: 0,
+    vertexAlphaEnabled: false,
+    topAlpha: 1,
+    bottomAlpha: 1,
+    topAlphaRange: 0.5,
+    bottomAlphaRange: 0.5,
     twist: 0,
     waveCount: 1,
     seed: 0,
@@ -319,9 +324,20 @@ const MESH_TYPE_TEMPLATE_PARAMS: Record<EffectMeshType, EffectMeshParams> = {
   },
 }
 
+const VERTEX_ALPHA_DEFAULT_PARAMS: Pick<
+  EffectMeshParams,
+  'vertexAlphaEnabled' | 'topAlpha' | 'bottomAlpha' | 'topAlphaRange' | 'bottomAlphaRange'
+> = {
+  vertexAlphaEnabled: false,
+  topAlpha: 1,
+  bottomAlpha: 1,
+  topAlphaRange: 0.5,
+  bottomAlphaRange: 0.5,
+}
+
 export const getMeshTypeTemplateParams = (meshType: EffectMeshType): EffectMeshParams => {
   const params = MESH_TYPE_TEMPLATE_PARAMS[meshType]
-  return { ...params, endTaper: params.endTaper ?? params.taper }
+  return { ...VERTEX_ALPHA_DEFAULT_PARAMS, ...params, endTaper: params.endTaper ?? params.taper }
 }
 
 export const getMeshTypeTemplateOptions = (meshType: EffectMeshType) => ({

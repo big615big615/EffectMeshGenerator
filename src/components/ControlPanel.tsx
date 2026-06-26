@@ -18,6 +18,11 @@ const SLASH_DEFAULT_PARAMS: EffectMeshParams = {
   topCurve: 0.2,
   taper: 0.35,
   spread: 0,
+  vertexAlphaEnabled: false,
+  topAlpha: 1,
+  bottomAlpha: 1,
+  topAlphaRange: 0.5,
+  bottomAlphaRange: 0.5,
   twist: 0,
   waveCount: 1,
   waveHeight: 1,
@@ -333,6 +338,17 @@ const BEAM_DOME_DEFAULT_PARAMS: EffectMeshParams = {
   beamEndCap: false,
 }
 
+const VERTEX_ALPHA_DEFAULT_PARAMS: Pick<
+  EffectMeshParams,
+  'vertexAlphaEnabled' | 'topAlpha' | 'bottomAlpha' | 'topAlphaRange' | 'bottomAlphaRange'
+> = {
+  vertexAlphaEnabled: false,
+  topAlpha: 1,
+  bottomAlpha: 1,
+  topAlphaRange: 0.5,
+  bottomAlphaRange: 0.5,
+}
+
 const MESH_TYPE_OPTION_VALUES: ReadonlyArray<EffectMeshType> = [
   'slash',
   'arc',
@@ -361,6 +377,11 @@ type EffectControlKey =
   | 'taper'
   | 'spread'
   | 'bottomSpread'
+  | 'topAlpha'
+  | 'bottomAlpha'
+  | 'alphaRange'
+  | 'topAlphaRange'
+  | 'bottomAlphaRange'
   | 'twist'
   | 'waveCount'
   | 'waveCountX'
@@ -371,7 +392,13 @@ type EffectControlKey =
   | 'yClip'
 
 const VISIBLE_EFFECT_CONTROLS: Record<EffectMeshType, readonly EffectControlKey[]> = {
-  slash: ['curve', 'topCurve', 'taper', 'spread', 'twist'],
+  slash: [
+    'curve',
+    'topCurve',
+    'taper',
+    'spread',
+    'twist',
+  ],
   arc: ['curve', 'topCurve', 'taper', 'spread'],
   arcRibbon: ['curve', 'topCurve', 'taper', 'spread', 'twist'],
   openCylinder: ['curve', 'topCurve', 'spread', 'bottomSpread', 'twist', 'waveCount', 'waveHeight', 'seed'],
@@ -409,6 +436,33 @@ const BEAM_WAVE_DETAIL_CONTROLS: ReadonlySet<EffectControlKey> = new Set([
   'waveHeightX',
   'seed',
   'seedX',
+])
+
+const VERTEX_ALPHA_DETAIL_CONTROLS: ReadonlySet<EffectControlKey> = new Set([
+  'topAlpha',
+  'topAlphaRange',
+  'bottomAlpha',
+  'bottomAlphaRange',
+])
+
+const VERTEX_ALPHA_MESH_TYPES: ReadonlySet<EffectMeshType> = new Set([
+  'slash',
+  'arc',
+  'openCylinder',
+  'arcRibbon',
+  'ribbon',
+  'lightningRibbon',
+  'risingSpiralRibbon',
+  'cylinderSpiralRibbon',
+  'plane',
+  'flatRing',
+  'sphere',
+  'hemisphere',
+  'zHemisphere',
+  'beamDome',
+  'honeycombPlane',
+  'honeycombRadialPlane',
+  'honeycombSphere',
 ])
 
 const DOUBLE_SIDED_MESH_TYPES: ReadonlySet<EffectMeshType> = new Set([
@@ -451,6 +505,21 @@ const REPOSITORY_URL = 'https://github.com/big615big615/EffectMeshGenerator'
 
 // Management controls: set to true when exposing recording/debug-only controls.
 const SHOW_MANAGEMENT_CONTROLS = false
+
+const getVertexAlphaLabels = (meshType: EffectMeshType, t: (typeof uiText)[Language]) => {
+  switch (meshType) {
+    case 'arc':
+    case 'arcRibbon':
+      return { first: t.vertexAlphaSideStart, second: t.vertexAlphaSideEnd }
+    case 'flatRing':
+    case 'honeycombRadialPlane':
+      return { first: t.vertexAlphaSideOuter, second: t.vertexAlphaSideInner }
+    case 'beamDome':
+      return { first: t.vertexAlphaSideTip, second: t.vertexAlphaSideTail }
+    default:
+      return { first: t.vertexAlphaSideTop, second: t.vertexAlphaSideBottom }
+  }
+}
 
 interface ControlPanelProps {
   meshType: EffectMeshType
@@ -615,6 +684,12 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       waveEnabled: !(params.waveEnabled ?? false),
     })
   }
+  const handleVertexAlphaEnabledChange = () => {
+    setParams({
+      ...params,
+      vertexAlphaEnabled: !(params.vertexAlphaEnabled ?? false),
+    })
+  }
   const handleBeamEndCapChange = () => {
     setParams({
       ...params,
@@ -640,15 +715,24 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     window.addEventListener('blur', cleanup)
   }
   const applyMeshParams = (nextParams: EffectMeshParams) => {
-    setParams({ ...nextParams, endTaper: nextParams.endTaper ?? nextParams.taper })
+    setParams({
+      ...VERTEX_ALPHA_DEFAULT_PARAMS,
+      ...nextParams,
+      endTaper: nextParams.endTaper ?? nextParams.taper,
+    })
   }
   const isEffectControlVisible = (key: EffectControlKey) => {
+    if (VERTEX_ALPHA_DETAIL_CONTROLS.has(key)) {
+      return VERTEX_ALPHA_MESH_TYPES.has(meshType) && (params.vertexAlphaEnabled ?? false)
+    }
+
     const visible = VISIBLE_EFFECT_CONTROLS[meshType].includes(key)
     if (meshType === 'beamDome' && BEAM_WAVE_DETAIL_CONTROLS.has(key)) {
       return visible && (params.waveEnabled ?? false)
     }
     return visible
   }
+  const vertexAlphaLabels = getVertexAlphaLabels(meshType, t)
   const isSphericalMesh =
     meshType === 'sphere' || meshType === 'hemisphere' || meshType === 'zHemisphere'
   const isPlanarHoneycombMesh =
@@ -2145,6 +2229,91 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           </label>
         </div>
       </div>
+
+      {VERTEX_ALPHA_MESH_TYPES.has(meshType) && (
+        <div className="control-group toggle-row inline-toggle-row">
+          <label>{t.vertexAlpha}</label>
+          <button
+            type="button"
+            className={`toggle-btn ${params.vertexAlphaEnabled ? 'active' : ''}`}
+            onClick={handleVertexAlphaEnabledChange}
+          >
+            {params.vertexAlphaEnabled ? t.on : t.off}
+          </button>
+        </div>
+      )}
+
+      {isEffectControlVisible('topAlpha') && (
+        <div className="control-group">
+          <label htmlFor="topAlpha">
+            {t.vertexAlphaStrength} {vertexAlphaLabels.first}
+          </label>
+          <input
+            id="topAlpha"
+            type="range"
+            min="0"
+            max="2"
+            step="0.05"
+            value={params.topAlpha ?? 1}
+            onChange={(e) => handleChange('topAlpha', parseFloat(e.target.value))}
+          />
+          <span className="value">{(params.topAlpha ?? 1).toFixed(2)}</span>
+        </div>
+      )}
+
+      {isEffectControlVisible('topAlphaRange') && (
+        <div className="control-group">
+          <label htmlFor="topAlphaRange">
+            {t.vertexAlphaRangeShort} {vertexAlphaLabels.first}
+          </label>
+          <input
+            id="topAlphaRange"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={params.topAlphaRange ?? params.alphaRange ?? 0.5}
+            onChange={(e) => handleChange('topAlphaRange', parseFloat(e.target.value))}
+          />
+          <span className="value">{(params.topAlphaRange ?? params.alphaRange ?? 0.5).toFixed(2)}</span>
+        </div>
+      )}
+
+      {isEffectControlVisible('bottomAlpha') && (
+        <div className="control-group">
+          <label htmlFor="bottomAlpha">
+            {t.vertexAlphaStrength} {vertexAlphaLabels.second}
+          </label>
+          <input
+            id="bottomAlpha"
+            type="range"
+            min="0"
+            max="2"
+            step="0.05"
+            value={params.bottomAlpha ?? 1}
+            onChange={(e) => handleChange('bottomAlpha', parseFloat(e.target.value))}
+          />
+          <span className="value">{(params.bottomAlpha ?? 1).toFixed(2)}</span>
+        </div>
+      )}
+
+      {isEffectControlVisible('bottomAlphaRange') && (
+        <div className="control-group">
+          <label htmlFor="bottomAlphaRange">
+            {t.vertexAlphaRangeShort} {vertexAlphaLabels.second}
+          </label>
+          <input
+            id="bottomAlphaRange"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={params.bottomAlphaRange ?? params.alphaRange ?? 0.5}
+            onChange={(e) => handleChange('bottomAlphaRange', parseFloat(e.target.value))}
+          />
+          <span className="value">{(params.bottomAlphaRange ?? params.alphaRange ?? 0.5).toFixed(2)}</span>
+        </div>
+      )}
 
       <div className="export-section">
         <h3>{t.export}</h3>

@@ -418,7 +418,6 @@ body.range-input-dragging * {
   background: linear-gradient(135deg, #ffa94d 0%, #f76707 100%);
 }
 
-.export-btn.fbx-btn,
 .export-btn.glb-btn,
 .export-btn.gltf-btn {
   display: none;

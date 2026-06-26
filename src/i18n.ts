@@ -36,6 +36,22 @@ export interface UiText {
   honeycombExtraOffsetRows: string
   honeycombCenterRingRemoval: string
   bottomSpread: string
+  vertexAlpha: string
+  vertexAlphaTop: string
+  vertexAlphaBottom: string
+  vertexAlphaRange: string
+  vertexAlphaTopRange: string
+  vertexAlphaBottomRange: string
+  vertexAlphaStrength: string
+  vertexAlphaRangeShort: string
+  vertexAlphaSideTop: string
+  vertexAlphaSideBottom: string
+  vertexAlphaSideStart: string
+  vertexAlphaSideEnd: string
+  vertexAlphaSideOuter: string
+  vertexAlphaSideInner: string
+  vertexAlphaSideTip: string
+  vertexAlphaSideTail: string
   spreadStart: string
   spreadEnd: string
   twist: string
@@ -195,6 +211,22 @@ export const uiText: Record<Language, UiText> = {
     honeycombExtraOffsetRows: '偶数列+1',
     honeycombCenterRingRemoval: '中心リング削除',
     bottomSpread: '下部広がり',
+    vertexAlpha: '頂点アルファ',
+    vertexAlphaTop: '強度 上部',
+    vertexAlphaBottom: '強度 下部',
+    vertexAlphaRange: '頂点アルファ 範囲',
+    vertexAlphaTopRange: '範囲 上部',
+    vertexAlphaBottomRange: '範囲 下部',
+    vertexAlphaStrength: '強度',
+    vertexAlphaRangeShort: '範囲',
+    vertexAlphaSideTop: '上部',
+    vertexAlphaSideBottom: '下部',
+    vertexAlphaSideStart: '始点',
+    vertexAlphaSideEnd: '終点',
+    vertexAlphaSideOuter: '外周',
+    vertexAlphaSideInner: '内周',
+    vertexAlphaSideTip: '先端',
+    vertexAlphaSideTail: '終端',
     spreadStart: '広がり 下部',
     spreadEnd: '広がり 上部',
     twist: 'ねじれ',
@@ -332,6 +364,22 @@ export const uiText: Record<Language, UiText> = {
     honeycombExtraOffsetRows: 'Even Columns +1',
     honeycombCenterRingRemoval: 'Remove Center Rings',
     bottomSpread: 'Bottom Spread',
+    vertexAlpha: 'Vertex Alpha',
+    vertexAlphaTop: 'Strength Top',
+    vertexAlphaBottom: 'Strength Bottom',
+    vertexAlphaRange: 'Vertex Alpha Range',
+    vertexAlphaTopRange: 'Range Top',
+    vertexAlphaBottomRange: 'Range Bottom',
+    vertexAlphaStrength: 'Strength',
+    vertexAlphaRangeShort: 'Range',
+    vertexAlphaSideTop: 'Top',
+    vertexAlphaSideBottom: 'Bottom',
+    vertexAlphaSideStart: 'Start',
+    vertexAlphaSideEnd: 'End',
+    vertexAlphaSideOuter: 'Outer',
+    vertexAlphaSideInner: 'Inner',
+    vertexAlphaSideTip: 'Tip',
+    vertexAlphaSideTail: 'Tail',
     spreadStart: 'Spread Bottom',
     spreadEnd: 'Spread Top',
     twist: 'Twist',

@@ -1,6 +1,6 @@
 # Effect Mesh Generator
 
-Unity などのリアルタイム VFX 制作用に、スラッシュ、リボン、リング、球面、ビームなどのエフェクト用メッシュをブラウザ上で生成する React + Vite + Three.js ツールです。OBJ形式でエクスポートできます。
+Unity などのリアルタイム VFX 制作用に、スラッシュ、リボン、リング、球面、ビームなどのエフェクト用メッシュをブラウザ上で生成する React + Vite + Three.js ツールです。OBJ / FBX 形式でエクスポートできます。
 <img width="640" height="344" alt="レコーディング 2026-05-30 143031" src="https://github.com/user-attachments/assets/38a1f2cf-8889-428a-9ccd-f190a3dfa169" />
 
 ## Web App
@@ -20,8 +20,9 @@ https://github.com/big615big615/EffectMeshGenerator
 - テクスチャ画像のローカルプレビュー
 - ワイヤーフレーム、ポリゴン数、ピボット表示
 - ピボット、スケール、回転の調整
+- メッシュタイプごとの頂点アルファ調整
 - 日本語 / English UI
-- OBJ エクスポート
+- OBJ / FBX エクスポート
 
 - 対応メッシュタイプのクロスメッシュ切り替え
 - テンプレートを見た目で選べるサムネイル選択グリッド
@@ -54,9 +55,11 @@ https://github.com/big615big615/EffectMeshGenerator
 
 ## Export Status
 
-現在の公開 UI では OBJ エクスポートを主な出力形式にしています。
+現在の公開 UI では OBJ と FBX エクスポートを主な出力形式にしています。
 
-FBX、GLB、GLTF のエクスポート実装はコード上に残していますが、Unity / Blender での確認や UV 表示との整合が安定するまでボタンは非表示です。
+FBX はエフェクトメッシュ専用の最小 Binary FBX として書き出します。
+
+FBX には Position、Triangle Index、Normal、UV0、頂点カラーRGBAを出力します。UnityでOBJと同じ見た目のサイズになるよう、FBXの単位はメートル相当で出力しています。
 
 OBJ は Three.js の標準 `OBJExporter` ではなく、ツール上の UV 表示と一致するように調整した独自の書き出し処理を使っています。
 
@@ -114,7 +117,7 @@ npm.cmd run build
 ## Development Notes
 
 - メッシュ生成の基準実装は `src/generators/slashMeshGenerator.ts` と `src/generators/effectMeshGenerator.ts` です。
-- UV プレビュー、OBJ 書き出し、将来の GLB/GLTF/FBX 書き出しは同じ見た目になるように注意してください。
+- UV プレビュー、OBJ / FBX 書き出しは同じ見た目になるように注意してください。
 - Unity でのカリング、法線、UV の向きに影響する変更は、ツール上のプレビューと Unity import の両方で確認してください。
 
 ## Scripts
@@ -123,7 +126,16 @@ npm.cmd run build
 npm run dev
 npm run build
 npm run preview
+npm run validate:fbx
 ```
+
+Windows PowerShell:
+
+```bash
+npm.cmd run validate:fbx
+```
+
+`validate:fbx` は最小Plane、スラッシュ、頂点アルファ付きスラッシュのFBXを生成し、Binary FBX構造と three.js `FBXLoader` での読み戻しを確認します。外部FBX importerを使った追加検証が必要な場合は、`FBX_IMPORT_VALIDATOR_EXE` で実行ファイルの場所を指定できます。
 
 ## Deployment
 

@@ -42,6 +42,12 @@ export interface EffectMeshParams {
   endTaper?: number
   spread: number
   bottomSpread?: number
+  vertexAlphaEnabled?: boolean
+  topAlpha?: number
+  bottomAlpha?: number
+  alphaRange?: number
+  topAlphaRange?: number
+  bottomAlphaRange?: number
   twist: number
   waveEnabled?: boolean
   waveCount: number

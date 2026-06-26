@@ -1,7 +1,10 @@
 node_modules
 dist
 articles/
+docs/
+scripts/unity/
 .DS_Store
 *.log
 .env
 .env.local
+tmp/

@@ -15,9 +15,22 @@ interface ExportOBJOptions {
 export async function exportAsFBX(mesh: THREE.Mesh, fileName: string): Promise<void> {
   try {
     const exporter = new FBXExporter()
-    const fbxBuffer = exporter.parse(mesh)
-    const blob = new Blob([fbxBuffer], { type: 'application/octet-stream' })
+    const clonedMesh = cloneMeshForDownload(mesh, fileName)
+    const fbxContent = exporter.parse(clonedMesh)
+    const blob = new Blob([fbxContent], { type: 'application/octet-stream' })
     downloadFile(blob, `${fileName}.fbx`)
+  } catch (error) {
+    throw error
+  }
+}
+
+export async function exportAsFBXASCII(mesh: THREE.Mesh, fileName: string): Promise<void> {
+  try {
+    const exporter = new FBXExporter()
+    const clonedMesh = cloneMeshForDownload(mesh, fileName)
+    const fbxContent = exporter.parse(clonedMesh, { format: 'ascii' })
+    const blob = new Blob([fbxContent], { type: 'text/plain' })
+    downloadFile(blob, `${fileName}.ascii.fbx`)
   } catch (error) {
     throw error
   }
@@ -115,6 +128,14 @@ function cloneMeshForExport(mesh: THREE.Mesh): THREE.Mesh {
   clonedMesh.updateMatrix()
   clonedMesh.updateMatrixWorld(true)
 
+  return clonedMesh
+}
+
+function cloneMeshForDownload(mesh: THREE.Mesh, fileName: string): THREE.Mesh {
+  const clonedMesh = cloneMeshForExport(mesh)
+  clonedMesh.position.set(0, 0, 0)
+  clonedMesh.name = createOBJName(fileName)
+  clonedMesh.updateMatrixWorld(true)
   return clonedMesh
 }
 

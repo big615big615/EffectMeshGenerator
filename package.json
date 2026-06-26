@@ -17,7 +17,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "validate:fbx": "node scripts/validate-fbx-export.mjs"
   },
   "engines": {
     "node": ">=18.0.0",
