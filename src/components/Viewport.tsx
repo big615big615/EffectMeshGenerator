@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import {
@@ -662,7 +662,7 @@ const Viewport: React.FC<ViewportProps> = ({
   }, [])
 
   // Update mesh when params change
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!sceneRef.current || !meshRef.current) return
 
     const oldGeometry = meshRef.current.geometry

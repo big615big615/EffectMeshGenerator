@@ -35,6 +35,11 @@ interface TexturePreview {
   name: string
 }
 
+interface CurrentMeshState {
+  mesh: THREE.Mesh
+  revision: number
+}
+
 const App: React.FC = () => {
   const [meshType, setMeshType] = useState<EffectMeshType>('slash')
   const [params, setParams] = useState<EffectMeshParams>({
@@ -76,7 +81,7 @@ const App: React.FC = () => {
   const [scale, setScale] = useState<ScaleParams>({ x: 1, y: 1, z: 1 })
   const [rotation, setRotation] = useState<RotationParams>({ x: 0, y: 0, z: 0 })
   const [textureTiling, setTextureTiling] = useState<TextureTilingParams>({ x: 1, y: 1 })
-  const [currentMesh, setCurrentMesh] = useState<THREE.Mesh | undefined>(undefined)
+  const [currentMeshState, setCurrentMeshState] = useState<CurrentMeshState | undefined>(undefined)
   const [texturePreview, setTexturePreview] = useState<TexturePreview | null>(null)
   const [language, setLanguage] = useState<Language>('ja')
   const [isControlPanelCollapsed, setIsControlPanelCollapsed] = useState(false)
@@ -119,6 +124,13 @@ const App: React.FC = () => {
     }
   }
 
+  const handleMeshReady = (mesh: THREE.Mesh) => {
+    setCurrentMeshState((previous) => ({
+      mesh,
+      revision: (previous?.revision ?? 0) + 1,
+    }))
+  }
+
   const panelToggleLabel = isControlPanelCollapsed
     ? language === 'ja'
       ? '右側のUIを開く'
@@ -153,7 +165,7 @@ const App: React.FC = () => {
           textureTiling={textureTiling}
           textureSource={texturePreview}
           language={language}
-          onMeshReady={setCurrentMesh}
+          onMeshReady={handleMeshReady}
           onMeshTypeSelect={(nextMeshType) => handleMeshTypeTemplateSelect(nextMeshType, true)}
         />
       </div>
@@ -179,7 +191,7 @@ const App: React.FC = () => {
             setMeshType={setMeshType}
             params={params}
             setParams={setParams}
-            mesh={currentMesh}
+            mesh={currentMeshState?.mesh}
             wireframe={wireframe}
             setWireframe={setWireframe}
             showUV={showUV}
