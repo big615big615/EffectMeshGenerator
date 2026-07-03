@@ -15,6 +15,11 @@ import {
   type EffectMeshParams,
   type EffectMeshType,
 } from '../generators/effectMeshGenerator'
+import {
+  HONEYCOMB_PARTS_USER_DATA_KEY,
+  getHoneycombPartsUserData,
+  type HoneycombPartsUserData,
+} from '../generators/honeycombPartMetadata'
 import { uiText, type Language } from '../i18n'
 import {
   getMeshTypeTemplateOptions,
@@ -689,6 +694,7 @@ const Viewport: React.FC<ViewportProps> = ({
     }
 
     applyPreviewTexture(getPreviewTexture())
+    onMeshReady?.(meshRef.current)
   }, [meshType, params, uvRotation, mirrorZ, doubleSided, crossMesh, pivot])
 
   useEffect(() => {
@@ -1536,8 +1542,36 @@ const Viewport: React.FC<ViewportProps> = ({
     }
 
     mirroredGeometry.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1))
+    copyZMirroredHoneycombPartsUserData(sourceGeometry, mirroredGeometry, vertexCount)
     mirroredGeometry.computeVertexNormals()
     return mirroredGeometry
+  }
+
+  const copyZMirroredHoneycombPartsUserData = (
+    sourceGeometry: THREE.BufferGeometry,
+    mirroredGeometry: THREE.BufferGeometry,
+    sourceVertexCount: number
+  ): void => {
+    const sourceData = getHoneycombPartsUserData(sourceGeometry.userData)
+    if (!sourceData) return
+
+    const mirroredData: HoneycombPartsUserData = {
+      version: 1,
+      parts: sourceData.parts.map((part) => ({
+        ...part,
+        vertexRanges: [
+          ...part.vertexRanges,
+          ...part.vertexRanges.map((range) => ({
+            start: sourceVertexCount + range.start,
+            count: range.count,
+          })),
+        ],
+        triangleStart: part.triangleStart * 2,
+        triangleCount: part.triangleCount * 2,
+      })),
+    }
+
+    mirroredGeometry.userData[HONEYCOMB_PARTS_USER_DATA_KEY] = mirroredData
   }
 
   const applyUVRotation = (geometry: THREE.BufferGeometry, rotation: number) => {

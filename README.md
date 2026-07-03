@@ -63,6 +63,8 @@ FBX には Position、Triangle Index、Normal、UV0、頂点カラーRGBAを出�
 
 OBJ は Three.js の標準 `OBJExporter` ではなく、ツール上の UV 表示と一致するように調整した独自の書き出し処理を使っています。
 
+ハニカム3種では、各パーツのIDと座標情報を含むJSONも追加で書き出せます。
+
 ## Quick Start
 
 ```bash

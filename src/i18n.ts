@@ -114,6 +114,8 @@ export interface UiText {
   downloadAsGLB: string
   downloadAsGLTF: string
   downloadAsOBJ: string
+  downloadHoneycombPartJSON: string
+  honeycombPartIdExport: string
   usageAndPrivacy: string
   close: string
   usageTermsTitle: string
@@ -289,6 +291,8 @@ export const uiText: Record<Language, UiText> = {
     downloadAsGLB: 'GLB形式でダウンロード (Unity, UE5推奨)',
     downloadAsGLTF: 'GLTF形式でダウンロード (JSON形式)',
     downloadAsOBJ: 'OBJ形式でダウンロード (汎用フォーマット)',
+    downloadHoneycombPartJSON: 'ハニカムパーツ対応JSONをダウンロード',
+    honeycombPartIdExport: 'パーツID書き出し',
     usageAndPrivacy: '利用条件 / Privacy',
     close: '閉じる',
     usageTermsTitle: '利用条件とプライバシー',
@@ -442,6 +446,8 @@ export const uiText: Record<Language, UiText> = {
     downloadAsGLB: 'Download as GLB (recommended for Unity, UE5)',
     downloadAsGLTF: 'Download as GLTF (JSON format)',
     downloadAsOBJ: 'Download as OBJ (general format)',
+    downloadHoneycombPartJSON: 'Download honeycomb part JSON',
+    honeycombPartIdExport: 'Part ID Export',
     usageAndPrivacy: 'Usage / Privacy',
     close: 'Close',
     usageTermsTitle: 'Usage Terms and Privacy',

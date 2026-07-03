@@ -1,12 +1,56 @@
 import * as THREE from 'three'
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js'
 import { FBXExporter } from './FBXExporter'
+import { getHoneycombPartsUserData } from '../generators/honeycombPartMetadata'
 
 const POSITION_MERGE_PRECISION = 100000
 
 interface ExportOBJOptions {
   mergeSharedPositions?: boolean
   objectName?: string
+}
+
+interface HoneycombPartJSONPoint {
+  x: number
+  y: number
+  z: number
+}
+
+interface HoneycombPartJSONSurface {
+  vertexStart: number
+  vertexCount: number
+  center: [number, number, number]
+  centerPosition: HoneycombPartJSONPoint
+  corners: Array<[number, number, number]>
+  cornerPositions: HoneycombPartJSONPoint[]
+}
+
+interface HoneycombPartJSONPart {
+  id: number
+  cornerCount: number
+  triangleStart: number
+  triangleCount: number
+  polygonVertexStart: number
+  polygonVertexCount: number
+  vertexRanges: Array<{ start: number; count: number }>
+  center: [number, number, number]
+  centerPosition: HoneycombPartJSONPoint
+  corners: Array<[number, number, number]>
+  cornerPositions: HoneycombPartJSONPoint[]
+  surfaces: HoneycombPartJSONSurface[]
+  triangles: Array<[number, number, number]>
+}
+
+interface HoneycombPartJSON {
+  format: 'effect-mesh-generator-honeycomb-parts'
+  version: 1
+  meshName: string
+  coordinateSpace: 'exported-mesh-local'
+  vertexCount: number
+  triangleCount: number
+  partCount: number
+  notes: string[]
+  parts: HoneycombPartJSONPart[]
 }
 
 /**
@@ -34,6 +78,17 @@ export async function exportAsFBXASCII(mesh: THREE.Mesh, fileName: string): Prom
   } catch (error) {
     throw error
   }
+}
+
+export function canExportHoneycombPartJSON(mesh: THREE.Mesh | null): boolean {
+  if (!mesh) return false
+  return getHoneycombPartsUserData(mesh.geometry.userData) !== null
+}
+
+export async function exportHoneycombPartJSON(mesh: THREE.Mesh, fileName: string): Promise<void> {
+  const json = createHoneycombPartJSON(mesh, createOBJName(fileName))
+  const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' })
+  downloadFile(blob, `${fileName}.honeycomb-parts.json`)
 }
 
 /**
@@ -220,6 +275,114 @@ function exportOBJWithDisplayedUVs(mesh: THREE.Mesh, options: ExportOBJOptions):
   }
 
   return output
+}
+
+function createHoneycombPartJSON(mesh: THREE.Mesh, meshName: string): HoneycombPartJSON {
+  const geometry = mesh.geometry
+  const position = geometry.getAttribute('position')
+  const index = geometry.index
+  const partData = getHoneycombPartsUserData(geometry.userData)
+
+  if (!position) {
+    throw new Error('Mesh is missing position data')
+  }
+
+  if (!partData) {
+    throw new Error('Honeycomb part data is not available for this mesh')
+  }
+
+  const triangleCount = index
+    ? Math.floor(index.count / 3)
+    : Math.floor(position.count / 3)
+
+  const parts = partData.parts.map((part) => {
+    const surfaces = part.vertexRanges.map((range) => {
+      const center = getPositionTuple(position, range.start)
+      const corners: Array<[number, number, number]> = []
+
+      for (let i = 1; i < range.count; i++) {
+        corners.push(getPositionTuple(position, range.start + i))
+      }
+
+      return {
+        vertexStart: range.start,
+        vertexCount: range.count,
+        center,
+        centerPosition: toHoneycombPartJSONPoint(center),
+        corners,
+        cornerPositions: corners.map(toHoneycombPartJSONPoint),
+      }
+    })
+    const center: [number, number, number] = surfaces[0]?.center ?? [0, 0, 0]
+    const corners: Array<[number, number, number]> = surfaces[0]?.corners ?? []
+
+    return {
+      id: part.id,
+      cornerCount: part.cornerCount,
+      triangleStart: part.triangleStart,
+      triangleCount: part.triangleCount,
+      polygonVertexStart: part.triangleStart * 3,
+      polygonVertexCount: part.triangleCount * 3,
+      vertexRanges: part.vertexRanges,
+      center,
+      centerPosition: toHoneycombPartJSONPoint(center),
+      corners,
+      cornerPositions: corners.map(toHoneycombPartJSONPoint),
+      surfaces,
+      triangles: getTriangleTuples(geometry, part.triangleStart, part.triangleCount),
+    }
+  })
+
+  return {
+    format: 'effect-mesh-generator-honeycomb-parts',
+    version: 1,
+    meshName,
+    coordinateSpace: 'exported-mesh-local',
+    vertexCount: position.count,
+    triangleCount,
+    partCount: parts.length,
+    notes: [
+      'triangleStart and triangleCount refer to the exported mesh triangle order before Unity import optimization.',
+      'Use centerPosition/cornerPositions for Unity JsonUtility-based position matching if Unity changes triangle order during import.',
+      'Honeycomb sphere parts may include pentagons; check cornerCount per part.',
+    ],
+    parts,
+  }
+}
+
+function getPositionTuple(
+  position: THREE.BufferAttribute | THREE.InterleavedBufferAttribute,
+  index: number
+): [number, number, number] {
+  return [
+    position.getX(index),
+    position.getY(index),
+    position.getZ(index),
+  ]
+}
+
+function toHoneycombPartJSONPoint([x, y, z]: [number, number, number]): HoneycombPartJSONPoint {
+  return { x, y, z }
+}
+
+function getTriangleTuples(
+  geometry: THREE.BufferGeometry,
+  triangleStart: number,
+  triangleCount: number
+): Array<[number, number, number]> {
+  const index = geometry.index
+  const triangles: Array<[number, number, number]> = []
+
+  for (let triangle = 0; triangle < triangleCount; triangle++) {
+    const itemIndex = (triangleStart + triangle) * 3
+    triangles.push([
+      index ? index.getX(itemIndex) : itemIndex,
+      index ? index.getX(itemIndex + 1) : itemIndex + 1,
+      index ? index.getX(itemIndex + 2) : itemIndex + 2,
+    ])
+  }
+
+  return triangles
 }
 
 function createPositionKey(position: THREE.Vector3): string {

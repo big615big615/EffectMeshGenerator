@@ -400,6 +400,15 @@ body.range-input-dragging * {
   gap: 8px;
 }
 
+.export-subheading {
+  grid-column: 1 / -1;
+  margin: 4px 0 -2px;
+  color: #9ee6c1;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 .export-btn {
   padding: 10px 12px;
   font-size: 12px;
@@ -425,6 +434,10 @@ body.range-input-dragging * {
 
 .export-btn.obj-btn {
   background: linear-gradient(135deg, #b197fc 0%, #7950f2 100%);
+}
+
+.export-btn.json-btn {
+  background: linear-gradient(135deg, #20c997 0%, #087f5b 100%);
 }
 
 .export-btn:disabled {

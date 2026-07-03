@@ -1,5 +1,10 @@
 import * as THREE from 'three'
 import type { EffectMeshParams, HoneycombUvMode } from './effectMeshGenerator'
+import {
+  HONEYCOMB_PARTS_USER_DATA_KEY,
+  type HoneycombPartMetadata,
+  type HoneycombPartsUserData,
+} from './honeycombPartMetadata'
 
 interface HoneycombCell {
   center: THREE.Vector2
@@ -484,11 +489,13 @@ function createHoneycombGeometry(
   const positions: number[] = []
   const uvs: number[] = []
   const indices: number[] = []
+  const parts: HoneycombPartMetadata[] = []
   const layoutUvBounds =
     uvMode === 'layout' ? getPlanarHoneycombLayoutUvBounds(cells, cellInset) : null
 
-  cells.forEach((cell) => {
+  cells.forEach((cell, id) => {
     const baseIndex = positions.length / 3
+    const triangleStart = indices.length / 3
     const displayCorners = cell.corners.map((corner) =>
       corner.clone().lerp(cell.center, cellInset)
     )
@@ -516,11 +523,20 @@ function createHoneycombGeometry(
         indices.push(a, b, c)
       }
     }
+
+    parts.push({
+      id,
+      vertexRanges: [{ start: baseIndex, count: vertices.length }],
+      triangleStart,
+      triangleCount: HEX_CORNER_COUNT,
+      cornerCount: HEX_CORNER_COUNT,
+    })
   })
 
   geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3))
   geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2))
   geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1))
+  setHoneycombPartsUserData(geometry, parts)
   geometry.computeVertexNormals()
   return geometry
 }
@@ -535,9 +551,11 @@ function createSphericalHoneycombGeometry(
   const positions: number[] = []
   const uvs: number[] = []
   const indices: number[] = []
+  const parts: HoneycombPartMetadata[] = []
 
-  cells.forEach((cell) => {
+  cells.forEach((cell, id) => {
     const baseIndex = positions.length / 3
+    const triangleStart = indices.length / 3
     const vertices = [cell.center, ...insetSphericalCorners(cell, radius, cellInset)]
 
     vertices.forEach((vertex) => {
@@ -561,13 +579,34 @@ function createSphericalHoneycombGeometry(
         indices.push(a, b, c)
       }
     }
+
+    parts.push({
+      id,
+      vertexRanges: [{ start: baseIndex, count: vertices.length }],
+      triangleStart,
+      triangleCount: cell.corners.length,
+      cornerCount: cell.corners.length,
+    })
   })
 
   geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3))
   geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2))
   geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1))
+  setHoneycombPartsUserData(geometry, parts)
   geometry.computeVertexNormals()
   return geometry
+}
+
+function setHoneycombPartsUserData(
+  geometry: THREE.BufferGeometry,
+  parts: HoneycombPartMetadata[]
+): void {
+  const data: HoneycombPartsUserData = {
+    version: 1,
+    parts,
+  }
+
+  geometry.userData[HONEYCOMB_PARTS_USER_DATA_KEY] = data
 }
 
 function insetSphericalCorners(
@@ -634,14 +673,35 @@ function pushPlanarHoneycombLayoutUVs(
 }
 
 function pushSphericalHoneycombLayoutUVs(uvs: number[], vertices: THREE.Vector3[]): void {
-  vertices.forEach((vertex) => {
+  const unwrappedUValues = vertices.map((vertex) => getSphericalHoneycombLayoutU(vertex))
+  const centerU = unwrappedUValues[0] ?? 0.5
+
+  unwrappedUValues.forEach((u, index) => {
+    const vertex = vertices[index]
     const direction = vertex.clone().normalize()
-    const longitude = Math.atan2(direction.x, direction.z)
     const latitude = Math.asin(THREE.MathUtils.clamp(direction.y, -1, 1))
-    const u = (longitude + Math.PI) / (Math.PI * 2)
+    const unwrappedU = unwrapSphericalHoneycombLayoutU(u, centerU)
     const v = 1 - (latitude + Math.PI * 0.5) / Math.PI
-    uvs.push(u, v)
+    uvs.push(unwrappedU, v)
   })
+}
+
+function getSphericalHoneycombLayoutU(vertex: THREE.Vector3): number {
+  const direction = vertex.clone().normalize()
+  const longitude = Math.atan2(direction.x, direction.z)
+  return (longitude + Math.PI) / (Math.PI * 2)
+}
+
+function unwrapSphericalHoneycombLayoutU(u: number, centerU: number): number {
+  let unwrappedU = u
+
+  if (unwrappedU - centerU > 0.5) {
+    unwrappedU -= 1
+  } else if (unwrappedU - centerU < -0.5) {
+    unwrappedU += 1
+  }
+
+  return unwrappedU
 }
 
 function pushRegularPolygonUVs(uvs: number[], cornerCount: number): void {

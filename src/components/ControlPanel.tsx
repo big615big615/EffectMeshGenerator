@@ -746,6 +746,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     meshType === 'honeycombPlane' ||
     meshType === 'honeycombRadialPlane' ||
     meshType === 'honeycombSphere'
+  const canExportHoneycombPartJSON = meshExporter.canExportHoneycombPartJSON(mesh ?? null)
   const showsDoubleSided = DOUBLE_SIDED_MESH_TYPES.has(meshType)
   const showsCrossMesh = CROSS_MESH_TYPES.has(meshType)
   const showsMirrorZ = !showsDoubleSided && !HIDDEN_MIRROR_Z_MESH_TYPES.has(meshType)
@@ -1305,7 +1306,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     window.addEventListener('pointerup', handlePointerUp)
   }
 
-  const handleExport = async (format: 'fbx' | 'glb' | 'gltf' | 'obj') => {
+  const handleExport = async (format: 'fbx' | 'glb' | 'gltf' | 'obj' | 'honeycombJson') => {
     if (!mesh) {
       alert(t.exportWaiting)
       return
@@ -1330,6 +1331,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           await meshExporter.exportAsOBJ(mesh, fileName, {
             mergeSharedPositions: mirrorZ || doubleSided || meshType === 'beamDome',
           })
+          break
+        case 'honeycombJson':
+          await meshExporter.exportHoneycombPartJSON(mesh, fileName)
           break
       }
     } catch (error) {
@@ -2353,6 +2357,19 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           >
             OBJ
           </button>
+          {isHoneycombMesh && (
+            <>
+              <div className="export-subheading">{t.honeycombPartIdExport}</div>
+              <button
+                className="export-btn json-btn"
+                onClick={() => handleExport('honeycombJson')}
+                disabled={isExporting || !canExportHoneycombPartJSON}
+                title={t.downloadHoneycombPartJSON}
+              >
+                JSON
+              </button>
+            </>
+          )}
         </div>
         {isExporting && <p className="exporting-message">{t.exporting}</p>}
       </div>
