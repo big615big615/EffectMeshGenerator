@@ -250,6 +250,8 @@ export function generateDoubleSidedCrossEffectMesh(
       backGeometry.dispose()
       return combinedGeometry
     }
+    case 'plane':
+      return generateDoubleSidedPlaneMesh(params, true)
     case 'slash':
       return generateDoubleSidedCrossSlashMesh(params)
     default:
@@ -745,7 +747,11 @@ function generateBurstMesh(params: EffectMeshParams): THREE.BufferGeometry {
   })
 }
 
-function generatePlaneMesh(params: EffectMeshParams, crossMesh = false): THREE.BufferGeometry {
+function generatePlaneMesh(
+  params: EffectMeshParams,
+  crossMesh = false,
+  liftDirection = 1
+): THREE.BufferGeometry {
   const { lengthSegments, widthSegments } = getSegmentCounts(params)
   const halfLength = params.length / 2
   const liftAmount = getTopCurveAmount(params)
@@ -753,7 +759,7 @@ function generatePlaneMesh(params: EffectMeshParams, crossMesh = false): THREE.B
   return createGridGeometry(lengthSegments, widthSegments, (u, v, _i, _j, surfaceIndex) => {
     const currentWidth = getTaperedWidth(params, u)
     const sideOffset = (0.5 - v) * currentWidth
-    const normalOffset = Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount
+    const normalOffset = Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount * liftDirection
 
     if (surfaceIndex === 1) {
       return new THREE.Vector3(
@@ -769,6 +775,19 @@ function generatePlaneMesh(params: EffectMeshParams, crossMesh = false): THREE.B
       normalOffset
     )
   }, crossMesh ? 2 : 1)
+}
+
+export function generateDoubleSidedPlaneMesh(
+  params: EffectMeshParams,
+  crossMesh = false
+): THREE.BufferGeometry {
+  const frontGeometry = generatePlaneMesh(params, crossMesh, 1)
+  const backGeometry = generatePlaneMesh(params, crossMesh, -1)
+  const combinedGeometry = combineOppositeFacingGeometries(frontGeometry, backGeometry)
+
+  frontGeometry.dispose()
+  backGeometry.dispose()
+  return combinedGeometry
 }
 
 function generateFlatRingMesh(params: EffectMeshParams, crossMesh = false): THREE.BufferGeometry {

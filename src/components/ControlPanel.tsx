@@ -473,6 +473,7 @@ const DOUBLE_SIDED_MESH_TYPES: ReadonlySet<EffectMeshType> = new Set([
   'risingSpiralRibbon',
   'cylinderSpiralRibbon',
   'openCylinder',
+  'plane',
 ])
 
 const CROSS_MESH_TYPES: ReadonlySet<EffectMeshType> = new Set([
@@ -495,6 +496,11 @@ const HIDDEN_MIRROR_Z_MESH_TYPES: ReadonlySet<EffectMeshType> = new Set([
   'honeycombRadialPlane',
   'honeycombSphere',
   'beamDome',
+])
+
+const MIRROR_Z_LABELED_AS_DOUBLE_SIDED_MESH_TYPES: ReadonlySet<EffectMeshType> = new Set([
+  'arc',
+  'flatRing',
 ])
 
 const CONTACT_URLS: Record<Language, string> = {
@@ -750,6 +756,11 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const showsDoubleSided = DOUBLE_SIDED_MESH_TYPES.has(meshType)
   const showsCrossMesh = CROSS_MESH_TYPES.has(meshType)
   const showsMirrorZ = !showsDoubleSided && !HIDDEN_MIRROR_Z_MESH_TYPES.has(meshType)
+  const showsMirrorZAsDoubleSided =
+    showsMirrorZ && MIRROR_Z_LABELED_AS_DOUBLE_SIDED_MESH_TYPES.has(meshType)
+  const mirrorZLabel = showsMirrorZAsDoubleSided
+    ? t.doubleSided
+    : t.mirrorZ
   const isTornadoMesh = meshType === 'risingSpiralRibbon' || meshType === 'cylinderSpiralRibbon'
   const usesVerticalSpreadLabels = isTornadoMesh || meshType === 'openCylinder'
   const usesVerticalTaperLabels =
@@ -1865,6 +1876,19 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
       )}
 
+      {showsMirrorZAsDoubleSided && (
+        <div className="control-group toggle-row">
+          <span>{mirrorZLabel}</span>
+          <button
+            type="button"
+            className={`toggle-btn ${mirrorZ ? 'active' : ''}`}
+            onClick={() => setMirrorZ(!mirrorZ)}
+          >
+            {mirrorZ ? t.on : t.off}
+          </button>
+        </div>
+      )}
+
       {showsCrossMesh && (
         <div className="control-group toggle-row">
           <span>{t.crossMesh}</span>
@@ -1878,9 +1902,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </div>
       )}
 
-      {showsMirrorZ && (
+      {showsMirrorZ && !showsMirrorZAsDoubleSided && (
         <div className="control-group toggle-row">
-          <span>{t.mirrorZ}</span>
+          <span>{mirrorZLabel}</span>
           <button
             type="button"
             className={`toggle-btn ${mirrorZ ? 'active' : ''}`}

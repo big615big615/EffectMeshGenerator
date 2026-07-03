@@ -8,6 +8,7 @@ import {
   generateDoubleSidedCylinderSpiralRibbonMesh,
   generateDoubleSidedLightningRibbonMesh,
   generateDoubleSidedOpenCylinderMesh,
+  generateDoubleSidedPlaneMesh,
   generateDoubleSidedRisingSpiralRibbonMesh,
   generateDoubleSidedRibbonMesh,
   generateDoubleSidedSlashMesh,
@@ -1425,7 +1426,8 @@ const Viewport: React.FC<ViewportProps> = ({
       selectedMeshType === 'slash' ||
       selectedMeshType === 'risingSpiralRibbon' ||
       selectedMeshType === 'cylinderSpiralRibbon' ||
-      selectedMeshType === 'openCylinder'
+      selectedMeshType === 'openCylinder' ||
+      selectedMeshType === 'plane'
     ) &&
     shouldDoubleSide
 
@@ -1482,6 +1484,10 @@ const Viewport: React.FC<ViewportProps> = ({
 
     if (selectedMeshType === 'cylinderSpiralRibbon') {
       return generateDoubleSidedCylinderSpiralRibbonMesh(meshParams)
+    }
+
+    if (selectedMeshType === 'plane') {
+      return generateDoubleSidedPlaneMesh(meshParams)
     }
 
     return generateDoubleSidedRisingSpiralRibbonMesh(meshParams)
