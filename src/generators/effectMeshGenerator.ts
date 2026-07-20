@@ -54,6 +54,8 @@ export interface EffectMeshParams {
   waveCountX?: number
   waveHeight?: number
   waveHeightX?: number
+  waveHeightZ?: number
+  waveOffset?: number
   seed: number
   seedX?: number
   yClip: number
@@ -347,21 +349,41 @@ function generateLightningRibbonMesh(
   const { lengthSegments, widthSegments } = getSegmentCounts(params)
   const halfLength = params.length / 2
   const curveAmount = getCurveAmount(params)
+  const centerCurveAmount = params.waveHeightX === undefined ? 0 : curveAmount
+  const centerArcAngle = centerCurveAmount * Math.PI
   const liftAmount = getTopCurveAmount(params) * liftDirection
-  const depthAmount = Math.max(0, params.spread)
+  const waveHeightX = Math.max(0, params.waveHeightX ?? curveAmount)
+  const waveHeightZ = Math.max(0, params.waveHeightZ ?? params.spread)
+  const spreadAmount = Math.max(0, params.spread)
+  const bottomSpreadAmount = Math.max(0, params.bottomSpread ?? 0)
+  const waveOffset = THREE.MathUtils.euclideanModulo(params.waveOffset ?? 0, 1)
   const bendCount = Math.max(2, Math.round(params.waveCount * 2))
-  const sideAmplitude = params.length * THREE.MathUtils.lerp(0.03, 0.22, curveAmount)
-  const depthAmplitude = params.length * 0.08 * depthAmount
+  const sideAmplitude = params.length * 0.22 * waveHeightX
+  const depthAmplitude = params.length * 0.08 * waveHeightZ
   const noiseSeed = Math.floor(params.seed)
+  const baseOffsets: THREE.Vector2[] = []
   const anchorPoints: THREE.Vector3[] = []
   const centerPoints: THREE.Vector3[] = []
+
+  for (let i = 0; i < bendCount; i++) {
+    baseOffsets.push(new THREE.Vector2(
+      getSignedNoise(i, 19.73, noiseSeed) * sideAmplitude,
+      getSignedNoise(i, 47.11, noiseSeed) * depthAmplitude
+    ))
+  }
 
   for (let i = 0; i <= bendCount; i++) {
     const u = i / bendCount
     const endFade = Math.sin(Math.PI * u)
-    const x = getSignedNoise(i, 19.73, noiseSeed) * sideAmplitude * endFade
-    const z = getSignedNoise(i, 47.11, noiseSeed) * depthAmplitude * endFade
-    const y = THREE.MathUtils.lerp(-halfLength, halfLength, u)
+    const offsetIndex = THREE.MathUtils.euclideanModulo(u - waveOffset, 1) * bendCount
+    const offsetIndex0 = Math.floor(offsetIndex) % bendCount
+    const offsetIndex1 = (offsetIndex0 + 1) % bendCount
+    const offsetT = offsetIndex - Math.floor(offsetIndex)
+    const offset = baseOffsets[offsetIndex0].clone().lerp(baseOffsets[offsetIndex1], offsetT)
+    const centerCurvePoint = getCenterlineArcPoint(u, halfLength, centerArcAngle)
+    const x = offset.x * endFade
+    const z = offset.y * endFade + centerCurvePoint.offset
+    const y = centerCurvePoint.y
     anchorPoints.push(new THREE.Vector3(x, y, z))
   }
 
@@ -389,7 +411,12 @@ function generateLightningRibbonMesh(
       surfaceIndex === 0
         ? twistedNormalDirection
         : getSurfaceNormalDirection(tangent, surfaceSideDirection)
-    const currentWidth = getTaperedWidth(params, u)
+    const topSpreadProfile = u * u * (3 - 2 * u)
+    const bottomSpreadU = 1 - u
+    const bottomSpreadProfile = bottomSpreadU * bottomSpreadU * (3 - 2 * bottomSpreadU)
+    const spreadWidth =
+      params.thickness * (spreadAmount * topSpreadProfile + bottomSpreadAmount * bottomSpreadProfile)
+    const currentWidth = getTaperedWidth(params, u) + spreadWidth
     const vertex = centerPoints[i].clone().addScaledVector(surfaceSideDirection, (v - 0.5) * currentWidth)
     vertex.addScaledVector(surfaceNormalDirection, Math.sin(Math.PI * v) * currentWidth * 0.5 * liftAmount)
     return vertex
@@ -1280,6 +1307,29 @@ function getTopCurveAmount(params: EffectMeshParams): number {
 
 function getTaperedWidth(params: EffectMeshParams, u: number): number {
   return params.thickness * getTaperProfile(params, u)
+}
+
+function getCenterlineArcPoint(
+  u: number,
+  halfLength: number,
+  arcAngle: number
+): { y: number; offset: number } {
+  if (arcAngle <= 0.0001) {
+    return {
+      y: THREE.MathUtils.lerp(-halfLength, halfLength, u),
+      offset: 0,
+    }
+  }
+
+  const halfArcAngle = arcAngle / 2
+  const radius = halfLength / Math.sin(halfArcAngle)
+  const angle = THREE.MathUtils.lerp(-halfArcAngle, halfArcAngle, u)
+  const centerOffset = -radius * Math.cos(halfArcAngle)
+
+  return {
+    y: radius * Math.sin(angle),
+    offset: radius * Math.cos(angle) + centerOffset,
+  }
 }
 
 function getTaperProfile(params: EffectMeshParams, u: number): number {

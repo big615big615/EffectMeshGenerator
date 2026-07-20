@@ -62,6 +62,8 @@ export interface UiText {
   waveHeight: string
   waveHeightX: string
   waveHeightY: string
+  waveHeightZ: string
+  waveOffset: string
   seed: string
   seedX: string
   seedY: string
@@ -239,6 +241,8 @@ export const uiText: Record<Language, UiText> = {
     waveHeight: '波の高さ',
     waveHeightX: '波の高さ X',
     waveHeightY: '波の高さ Y',
+    waveHeightZ: '波の高さ Z',
+    waveOffset: '波オフセット',
     seed: 'シード',
     seedX: 'シード X',
     seedY: 'シード Y',
@@ -394,6 +398,8 @@ export const uiText: Record<Language, UiText> = {
     waveHeight: 'Wave Height',
     waveHeightX: 'Wave Height X',
     waveHeightY: 'Wave Height Y',
+    waveHeightZ: 'Wave Height Z',
+    waveOffset: 'Wave Offset',
     seed: 'Seed',
     seedX: 'Seed X',
     seedY: 'Seed Y',

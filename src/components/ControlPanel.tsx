@@ -134,12 +134,16 @@ const LIGHTNING_RIBBON_DEFAULT_PARAMS: EffectMeshParams = {
   widthDivisions: 1,
   thickness: 0.22,
   length: 5,
-  curve: 1.4,
+  curve: 0,
   topCurve: 0,
   taper: 0.75,
-  spread: 0.25,
+  spread: 0,
+  bottomSpread: 0,
   twist: 0,
   waveCount: 5,
+  waveHeightX: 0.7,
+  waveHeightZ: 0.25,
+  waveOffset: 0,
   seed: 0,
   yClip: 0,
   cylinderScale: 1,
@@ -387,6 +391,8 @@ type EffectControlKey =
   | 'waveCountX'
   | 'waveHeight'
   | 'waveHeightX'
+  | 'waveHeightZ'
+  | 'waveOffset'
   | 'seed'
   | 'seedX'
   | 'yClip'
@@ -403,7 +409,19 @@ const VISIBLE_EFFECT_CONTROLS: Record<EffectMeshType, readonly EffectControlKey[
   arcRibbon: ['curve', 'topCurve', 'taper', 'spread', 'twist'],
   openCylinder: ['curve', 'topCurve', 'spread', 'bottomSpread', 'twist', 'waveCount', 'waveHeight', 'seed'],
   ribbon: ['curve', 'topCurve', 'taper', 'spread', 'twist', 'waveCount', 'seed'],
-  lightningRibbon: ['curve', 'topCurve', 'taper', 'spread', 'twist', 'waveCount', 'seed'],
+  lightningRibbon: [
+    'waveHeightX',
+    'waveHeightZ',
+    'waveOffset',
+    'curve',
+    'topCurve',
+    'taper',
+    'spread',
+    'bottomSpread',
+    'twist',
+    'waveCount',
+    'seed',
+  ],
   risingSpiralRibbon: ['curve', 'topCurve', 'taper', 'spread', 'bottomSpread', 'twist', 'waveCount'],
   cylinderSpiralRibbon: ['curve', 'topCurve', 'taper', 'spread', 'bottomSpread', 'twist', 'waveCount'],
   plane: ['topCurve', 'taper'],
@@ -762,7 +780,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     ? t.doubleSided
     : t.mirrorZ
   const isTornadoMesh = meshType === 'risingSpiralRibbon' || meshType === 'cylinderSpiralRibbon'
-  const usesVerticalSpreadLabels = isTornadoMesh || meshType === 'openCylinder'
+  const usesVerticalSpreadLabels =
+    isTornadoMesh || meshType === 'openCylinder' || meshType === 'lightningRibbon'
   const usesVerticalTaperLabels =
     isTornadoMesh ||
     meshType === 'slash' ||
@@ -789,11 +808,13 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       : '64'
   const curveMin = meshType === 'openCylinder' ? '-1' : '0'
   const curveMax = meshType === 'openCylinder' ? '1' : '2'
-  const spreadLabel = isHoneycombMesh
-    ? t.honeycombGap
-    : usesVerticalSpreadLabels
-      ? t.spreadEnd
-      : t.spread
+  const curveLabel = isPlanarHoneycombMesh ? t.honeycombYCurve : t.curve
+  const spreadLabel =
+    isHoneycombMesh
+      ? t.honeycombGap
+      : usesVerticalSpreadLabels
+        ? t.spreadEnd
+        : t.spread
   const spreadMax = isHoneycombMesh ? '0.75' : '3'
   const spreadStep = isHoneycombMesh ? '0.01' : '0.05'
 
@@ -1507,7 +1528,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
       {isEffectControlVisible('curve') && (
         <div className="control-group">
-          <label htmlFor="curve">{isPlanarHoneycombMesh ? t.honeycombYCurve : t.curve}</label>
+          <label htmlFor="curve">{curveLabel}</label>
           <input
             id="curve"
             type="range"
@@ -1770,6 +1791,38 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             onChange={(e) => handleChange('waveHeightX', parseFloat(e.target.value))}
           />
           <span className="value">{(params.waveHeightX ?? 0).toFixed(2)}</span>
+        </div>
+      )}
+
+      {isEffectControlVisible('waveHeightZ') && (
+        <div className="control-group">
+          <label htmlFor="waveHeightZ">{t.waveHeightZ}</label>
+          <input
+            id="waveHeightZ"
+            type="range"
+            min="0"
+            max="3"
+            step="0.05"
+            value={params.waveHeightZ ?? 0}
+            onChange={(e) => handleChange('waveHeightZ', parseFloat(e.target.value))}
+          />
+          <span className="value">{(params.waveHeightZ ?? 0).toFixed(2)}</span>
+        </div>
+      )}
+
+      {isEffectControlVisible('waveOffset') && (
+        <div className="control-group">
+          <label htmlFor="waveOffset">{t.waveOffset}</label>
+          <input
+            id="waveOffset"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={params.waveOffset ?? 0}
+            onChange={(e) => handleChange('waveOffset', parseFloat(e.target.value))}
+          />
+          <span className="value">{(params.waveOffset ?? 0).toFixed(2)}</span>
         </div>
       )}
 
